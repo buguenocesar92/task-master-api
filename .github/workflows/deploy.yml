@@ -79,13 +79,78 @@ jobs:
     steps:
       - name: Check Required Secrets
         run: |
+          # Lista de secretos requeridos para el despliegue seguro
+          echo "🔐 Verificando secretos de GitHub requeridos..."
+
+          # Verificar APP_KEY
           if [[ -z "${{ secrets.APP_KEY }}" ]]; then
-            echo "⚠️ ADVERTENCIA: APP_KEY no está configurada como secreto de GitHub."
-            echo "Es altamente recomendable configurar APP_KEY como un secreto de GitHub para mantener la consistencia entre despliegues."
-            echo "Esto es especialmente importante para mantener la integridad de los datos encriptados en la aplicación."
-            echo "Una APP_KEY temporal será generada para este despliegue, pero debe ser reemplazada por una permanente."
-            echo "Para generar una clave, ejecuta: php artisan key:generate --show"
+            echo "⚠️ ADVERTENCIA: El secreto APP_KEY no está configurado."
+            echo "   - APP_KEY es crítico para la encriptación de datos. Puedes generarla con: php artisan key:generate --show"
+            echo "   - Se usará una APP_KEY temporal, pero esto puede causar pérdida de datos encriptados en despliegues futuros."
+          fi
+
+          # Verificar APP_ENV
+          if [[ -z "${{ secrets.APP_ENV }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto APP_ENV no está configurado."
+            echo "   - APP_ENV determina el entorno de la aplicación. Recomendamos usar 'production' para entornos de producción."
+            echo "   - Se usará 'production' como valor predeterminado."
+          fi
+
+          # Verificar APP_DEBUG
+          if [[ -z "${{ secrets.APP_DEBUG }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto APP_DEBUG no está configurado."
+            echo "   - APP_DEBUG controla si se muestran errores detallados. Debe ser 'false' en producción por seguridad."
+            echo "   - Se usará 'false' como valor predeterminado."
+          fi
+
+          # Verificar RDS_HOST
+          if [[ -z "${{ secrets.RDS_HOST }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto RDS_HOST no está configurado."
+            echo "   - Este secreto es necesario para la conexión a la base de datos PostgreSQL. Sin él, la aplicación no funcionará."
+          fi
+
+          # Verificar RDS_DATABASE
+          if [[ -z "${{ secrets.RDS_DATABASE }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto RDS_DATABASE no está configurado."
+            echo "   - Este secreto es necesario para la conexión a la base de datos PostgreSQL. Sin él, la aplicación no funcionará."
+          fi
+
+          # Verificar RDS_USERNAME
+          if [[ -z "${{ secrets.RDS_USERNAME }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto RDS_USERNAME no está configurado."
+            echo "   - Este secreto es necesario para la conexión a la base de datos PostgreSQL. Sin él, la aplicación no funcionará."
+          fi
+
+          # Verificar RDS_PASSWORD
+          if [[ -z "${{ secrets.RDS_PASSWORD }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto RDS_PASSWORD no está configurado."
+            echo "   - Este secreto es necesario para la conexión a la base de datos PostgreSQL. Sin él, la aplicación no funcionará."
+          fi
+
+          # Verificar APP_URL
+          if [[ -z "${{ secrets.APP_URL }}" ]]; then
+            echo "⚠️ ADVERTENCIA: El secreto APP_URL no está configurado."
+            echo "   - APP_URL debe ser la URL completa donde se accede a la aplicación. Ej: https://ejemplo.com"
+            echo "   - Se usará http://localhost:8080 como valor predeterminado."
+          fi
+
+          # Resumen
+          MISSING_COUNT=$([[ -z "${{ secrets.APP_KEY }}" ]] && echo -n "1" || echo -n "0")
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.APP_ENV }}" ]] && echo -n "1" || echo -n "0")))
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.APP_DEBUG }}" ]] && echo -n "1" || echo -n "0")))
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.RDS_HOST }}" ]] && echo -n "1" || echo -n "0")))
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.RDS_DATABASE }}" ]] && echo -n "1" || echo -n "0")))
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.RDS_USERNAME }}" ]] && echo -n "1" || echo -n "0")))
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.RDS_PASSWORD }}" ]] && echo -n "1" || echo -n "0")))
+          MISSING_COUNT=$((MISSING_COUNT + $([[ -z "${{ secrets.APP_URL }}" ]] && echo -n "1" || echo -n "0")))
+
+          if [[ $MISSING_COUNT -gt 0 ]]; then
             echo ""
+            echo "⚠️ ADVERTENCIA: Se detectaron ${MISSING_COUNT} secretos faltantes."
+            echo "Por favor, configura todos los secretos en GitHub: Settings > Secrets and variables > Actions"
+            echo ""
+          else
+            echo "✅ Todos los secretos requeridos están configurados correctamente."
           fi
 
       - name: Deploy to EC2
@@ -108,16 +173,42 @@ jobs:
             REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY }}"
             REPO_URL="${ECR_URL}/${REPO_NAME}"
 
-            # Configurar APP_KEY (preferiblemente desde secretos)
+            # Configurar variables de entorno desde secretos de GitHub
+            # APP_KEY (preferiblemente desde secretos)
             if [[ -n "${{ secrets.APP_KEY }}" ]]; then
-              # Usar la APP_KEY configurada en los secretos de GitHub
               APP_KEY="${{ secrets.APP_KEY }}"
               echo "Usando APP_KEY configurada en secretos de GitHub"
             else
-              # Generar una APP_KEY temporal solo si no está configurada en los secretos
               APP_KEY="base64:$(openssl rand -base64 32)"
               echo "⚠️ ADVERTENCIA: Generada APP_KEY temporal: $APP_KEY"
               echo "⚠️ IMPORTANTE: Configura esta clave como secreto APP_KEY en GitHub para futuros despliegues"
+            fi
+
+            # APP_ENV (preferiblemente desde secretos)
+            if [[ -n "${{ secrets.APP_ENV }}" ]]; then
+              APP_ENV="${{ secrets.APP_ENV }}"
+              echo "Usando APP_ENV configurado en secretos de GitHub: $APP_ENV"
+            else
+              APP_ENV="production"
+              echo "⚠️ ADVERTENCIA: Usando APP_ENV predeterminado: $APP_ENV"
+            fi
+
+            # APP_DEBUG (preferiblemente desde secretos)
+            if [[ -n "${{ secrets.APP_DEBUG }}" ]]; then
+              APP_DEBUG="${{ secrets.APP_DEBUG }}"
+              echo "Usando APP_DEBUG configurado en secretos de GitHub: $APP_DEBUG"
+            else
+              APP_DEBUG="false"
+              echo "⚠️ ADVERTENCIA: Usando APP_DEBUG predeterminado: $APP_DEBUG"
+            fi
+
+            # APP_URL (preferiblemente desde secretos)
+            if [[ -n "${{ secrets.APP_URL }}" ]]; then
+              APP_URL="${{ secrets.APP_URL }}"
+              echo "Usando APP_URL configurado en secretos de GitHub: $APP_URL"
+            else
+              APP_URL="http://localhost:8080"
+              echo "⚠️ ADVERTENCIA: Usando APP_URL predeterminado: $APP_URL"
             fi
 
             # Login a ECR
@@ -158,19 +249,19 @@ jobs:
                 depends_on:
                   - redis
                 environment:
-                  # Variables de entorno de la aplicación (pasadas directamente en lugar de .env)
+                  # Variables de entorno de la aplicación (todas desde secretos de GitHub)
                   APP_NAME: "Laravel"
-                  APP_ENV: "local"
+                  APP_ENV: "${APP_ENV}"
                   APP_KEY: "${APP_KEY}"
-                  APP_DEBUG: "true"
-                  APP_URL: "http://localhost:8080"
+                  APP_DEBUG: "${APP_DEBUG}"
+                  APP_URL: "${APP_URL}"
 
                   # Variables de log
                   LOG_CHANNEL: "stack"
                   LOG_DEPRECATIONS_CHANNEL: "null"
                   LOG_LEVEL: "debug"
 
-                  # Configuración PostgreSQL
+                  # Configuración PostgreSQL (desde secretos de GitHub)
                   DB_CONNECTION: "pgsql"
                   DB_HOST: "${{ secrets.RDS_HOST }}"
                   DB_PORT: "5432"
@@ -272,23 +363,23 @@ jobs:
             docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache"
 
             # Crear archivo .env para asegurar la correcta configuración
-            echo "Creando archivo .env con configuración para la base de datos task-master..."
+            echo "Creando archivo .env con configuración desde secretos de GitHub..."
             docker exec laravel-api-app sh -c 'cat > /var/www/html/.env << "EOF"
             APP_NAME=Laravel
-            APP_ENV=production
+            APP_ENV='${APP_ENV}'
             APP_KEY='${APP_KEY}'
-            APP_DEBUG=false
-            APP_URL=http://localhost:8080
+            APP_DEBUG='${APP_DEBUG}'
+            APP_URL='${APP_URL}'
 
             LOG_CHANNEL=stack
             LOG_LEVEL=debug
 
             DB_CONNECTION=pgsql
-            DB_HOST=postgres
+            DB_HOST=${{ secrets.RDS_HOST }}
             DB_PORT=5432
-            DB_DATABASE=task-master
-            DB_USERNAME=postgres
-            DB_PASSWORD=9cmwEUUDLe42V5y4
+            DB_DATABASE=${{ secrets.RDS_DATABASE }}
+            DB_USERNAME=${{ secrets.RDS_USERNAME }}
+            DB_PASSWORD=${{ secrets.RDS_PASSWORD }}
 
             BROADCAST_DRIVER=log
             CACHE_DRIVER=file
@@ -364,7 +455,7 @@ jobs:
             docker restart laravel-api-nginx
 
             # Crear tabla de migraciones si no existe
-            echo "Creando tabla de migraciones en la base de datos task-master..."
+            echo "Creando tabla de migraciones en la base de datos..."
             docker exec -w /var/www/html laravel-api-app sh -c 'php artisan migrate:install --no-interaction'
 
             # Verificar que los contenedores estén en ejecución
@@ -372,12 +463,12 @@ jobs:
             docker ps
 
             # Ejecutar migraciones
-            echo "Ejecutando migraciones en task-master..."
+            echo "Ejecutando migraciones en la base de datos..."
             docker exec -w /var/www/html laravel-api-app php artisan migrate --force
 
             # Verificar la conexión a la base de datos
-            echo "Verificando conexión a la base de datos task-master..."
-            docker exec -it laravel-api-app php -r "try { \$pdo = new PDO('pgsql:host=postgres;dbname=task-master', 'postgres', '9cmwEUUDLe42V5y4'); echo 'Conexión exitosa a PostgreSQL'; } catch(PDOException \$e) { echo 'Error de conexión: ' . \$e->getMessage(); }"
+            echo "Verificando conexión a la base de datos..."
+            docker exec -it laravel-api-app php -r "try { \$pdo = new PDO('pgsql:host=${{ secrets.RDS_HOST }};dbname=${{ secrets.RDS_DATABASE }}', '${{ secrets.RDS_USERNAME }}', '${{ secrets.RDS_PASSWORD }}'); echo 'Conexión exitosa a PostgreSQL'; } catch(PDOException \$e) { echo 'Error de conexión: ' . \$e->getMessage(); }"
 
             # Regenerar el caché de configuración después de todo
             echo "Regenerando cachés..."
@@ -390,4 +481,4 @@ jobs:
 
             # Mensaje de éxito con instrucciones
             echo "Despliegue completado con éxito!"
-            echo "Prueba la aplicación en: http://$(curl -s http://checkip.amazonaws.com):8080"
+            echo "Prueba la aplicación en: ${APP_URL}"
