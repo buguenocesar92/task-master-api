@@ -85,7 +85,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,Dockerfile,.env.example"
+          source: "docker-compose.yml"
           target: "~/"
 
       - name: Deploy to EC2
@@ -95,27 +95,29 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Configuración del entorno
-            cp .env.example .env
-
             # Obtener URL completa del repositorio ECR
-            REPO_URL="${{ secrets.AWS_REGION }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}"
+            ECR_URL="${{ secrets.AWS_REGION }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
+            REPO_URL="${ECR_URL}/${{ secrets.AWS_ECR_REPOSITORY }}"
 
             # Login a ECR
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${REPO_URL}
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${ECR_URL}
 
             # Pull de la imagen más reciente
             docker pull ${REPO_URL}:latest
 
-            # Modificar docker-compose.yml para usar la imagen correcta
-            sed -i "s|image:.*|image: ${REPO_URL}:latest|g" docker-compose.yml
+            # Crear un archivo .env con la URL del repositorio ECR
+            echo "ECR_REPOSITORY_URI=${REPO_URL}" > .env
+
+            # Verificar el contenido del docker-compose.yml
+            echo "Contenido del docker-compose.yml:"
+            cat docker-compose.yml
 
             # Iniciar contenedores
             docker-compose down
             docker-compose up -d
 
             # Esperar a que el contenedor esté listo
-            sleep 10
+            sleep 15
 
             # Revisar si el contenedor está ejecutándose
             docker ps
@@ -129,6 +131,8 @@ jobs:
               docker-compose exec -T app php artisan config:cache
               docker-compose exec -T app php artisan route:cache
               docker-compose exec -T app php artisan view:cache
+
+              echo "Despliegue completado con éxito!"
             else
               echo "El contenedor app no está ejecutándose. Verificar logs:"
               docker-compose logs

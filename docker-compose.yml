@@ -3,14 +3,11 @@ version: '3.8'
 services:
   # PHP Application
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${ECR_REPOSITORY_URI}:latest
     container_name: laravel-api-app
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
-      - ./:/var/www/html
       - ./docker/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
     networks:
       - laravel-network
