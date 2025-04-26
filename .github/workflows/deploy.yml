@@ -85,187 +85,201 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            # Simplificar para solo probar la conexión
+            # Primero reportamos información básica del servidor
             echo "Conexión SSH establecida correctamente!"
             echo "Hostname: $(hostname)"
             echo "Fecha y hora: $(date)"
             echo "Usuario: $(whoami)"
             echo "Directorio actual: $(pwd)"
 
-            # Puedes agregar más comandos para verificar el entorno
-            echo "Versión de Docker (si está instalado):"
-            if command -v docker &> /dev/null; then
-              docker --version
+            # Instalando dependencias necesarias si no existen
+            if ! command -v docker &> /dev/null; then
+              echo "Instalando Docker..."
+              sudo apt update
+              sudo apt install -y docker.io
+              sudo systemctl enable docker
+              sudo systemctl start docker
+              sudo usermod -aG docker $(whoami)
+              echo "Docker instalado."
             else
-              echo "Docker no está instalado"
+              echo "Docker ya está instalado: $(docker --version)"
             fi
 
-            echo "Versión de Docker Compose (si está instalado):"
-            if command -v docker-compose &> /dev/null; then
-              docker-compose --version
+            if ! command -v docker-compose &> /dev/null; then
+              echo "Instalando Docker Compose..."
+              sudo apt update
+              sudo apt install -y docker-compose
+              echo "Docker Compose instalado."
             else
-              echo "Docker Compose no está instalado"
+              echo "Docker Compose ya está instalado: $(docker-compose --version)"
             fi
 
-            echo "Prueba de conexión completada con éxito!"
+            # Instalamos AWS CLI si no existe
+            if ! command -v aws &> /dev/null; then
+              echo "Instalando AWS CLI..."
+              sudo apt update
+              sudo apt install -y awscli
+              echo "AWS CLI instalado."
+            else
+              echo "AWS CLI ya está instalado: $(aws --version)"
+            fi
 
-            # Configuración original comentada para pruebas futuras
-            # # Configurar variables
-            # export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
-            # export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-            # export AWS_DEFAULT_REGION="${{ secrets.AWS_REGION }}"
-            #
-            # # Configurar ECR
-            # ECR_ACCOUNT="${{ secrets.AWS_ACCOUNT_ID }}"
-            # ECR_REGION="${{ secrets.AWS_REGION }}"
-            # ECR_URL="${ECR_ACCOUNT}.dkr.ecr.${ECR_REGION}.amazonaws.com"
-            # REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY }}"
-            # REPO_URL="${ECR_URL}/${REPO_NAME}"
-            #
-            # # Login a ECR
-            # echo "Iniciando sesión en ECR..."
-            # aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
-            #
-            # # Pull de la imagen
-            # echo "Descargando imagen: ${REPO_URL}:latest"
-            # docker pull ${REPO_URL}:latest
-            #
-            # # Crear archivo de configuración nginx
-            # mkdir -p ~/nginx/conf.d
-            # cat > ~/nginx/conf.d/default.conf << EOF
-            # server {
-            #     listen 80;
-            #     index index.php index.html;
-            #     error_log  /var/log/nginx/error.log;
-            #     access_log /var/log/nginx/access.log;
-            #     root /var/www/html/public;
-            #
-            #     location ~ \.php$ {
-            #         try_files \$uri =404;
-            #         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-            #         fastcgi_pass app:9000;
-            #         fastcgi_index index.php;
-            #         include fastcgi_params;
-            #         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-            #         fastcgi_param PATH_INFO \$fastcgi_path_info;
-            #     }
-            #
-            #     location / {
-            #         try_files \$uri \$uri/ /index.php?\$query_string;
-            #         gzip_static on;
-            #     }
-            # }
-            # EOF
-            #
-            # # Crear docker-compose.yml
-            # cat > ~/docker-compose.yml << EOF
-            # version: '3.8'
-            #
-            # services:
-            #   # PHP Application
-            #   app:
-            #     image: ${REPO_URL}:latest
-            #     container_name: laravel-api-app
-            #     restart: unless-stopped
-            #     working_dir: /var/www/html
-            #     networks:
-            #       - laravel-network
-            #     depends_on:
-            #       - db
-            #       - redis
-            #
-            #   # Nginx Web Server
-            #   nginx:
-            #     image: nginx:alpine
-            #     container_name: laravel-api-nginx
-            #     restart: unless-stopped
-            #     ports:
-            #       - "8080:80"
-            #     volumes:
-            #       - ./nginx/conf.d:/etc/nginx/conf.d
-            #     networks:
-            #       - laravel-network
-            #     depends_on:
-            #       - app
-            #
-            #   # MySQL Database
-            #   db:
-            #     image: mysql:8.0
-            #     container_name: laravel-api-db
-            #     restart: unless-stopped
-            #     environment:
-            #       MYSQL_DATABASE: ${{ secrets.RDS_DATABASE }}
-            #       MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-            #       MYSQL_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-            #       MYSQL_USER: ${{ secrets.RDS_USERNAME }}
-            #       SERVICE_TAGS: dev
-            #       SERVICE_NAME: mysql
-            #     volumes:
-            #       - mysql-data:/var/lib/mysql
-            #     networks:
-            #       - laravel-network
-            #     healthcheck:
-            #       test: ["CMD", "mysqladmin", "ping", "-p${{ secrets.RDS_PASSWORD }}"]
-            #       retries: 3
-            #       timeout: 5s
-            #
-            #   # Redis for Cache and Queue
-            #   redis:
-            #     image: redis:alpine
-            #     container_name: laravel-api-redis
-            #     restart: unless-stopped
-            #     networks:
-            #       - laravel-network
-            #     volumes:
-            #       - redis-data:/data
-            #
-            #   # PHPMyAdmin for Database Management
-            #   phpmyadmin:
-            #     image: phpmyadmin/phpmyadmin
-            #     container_name: laravel-api-phpmyadmin
-            #     restart: unless-stopped
-            #     ports:
-            #       - "8081:80"
-            #     environment:
-            #       PMA_HOST: db
-            #       MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-            #     networks:
-            #       - laravel-network
-            #     depends_on:
-            #       - db
-            #
-            # # Volumes
-            # volumes:
-            #   mysql-data:
-            #     driver: local
-            #   redis-data:
-            #     driver: local
-            #
-            # # Networks
-            # networks:
-            #   laravel-network:
-            #     driver: bridge
-            # EOF
-            #
-            # # Iniciar contenedores
-            # echo "Iniciando contenedores..."
-            # cd ~
-            # docker-compose down
-            # docker-compose up -d
-            #
-            # # Verificar
-            # echo "Estado de los contenedores:"
-            # docker ps
-            #
-            # # Ejecutar migraciones
-            # if docker ps | grep -q laravel-api-app; then
-            #   docker-compose exec -T app php artisan migrate --force
-            #   docker-compose exec -T app php artisan config:cache
-            #   docker-compose exec -T app php artisan route:cache
-            #   docker-compose exec -T app php artisan view:cache
-            #   echo "Despliegue completado con éxito!"
-            # else
-            #   echo "ERROR: El contenedor app no está ejecutándose"
-            #   docker-compose logs app
-            #   exit 1
-            # fi
+            # Configurar variables
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_DEFAULT_REGION="${{ secrets.AWS_REGION }}"
+
+            # Configurar ECR
+            ECR_ACCOUNT="${{ secrets.AWS_ACCOUNT_ID }}"
+            ECR_REGION="${{ secrets.AWS_REGION }}"
+            ECR_URL="${ECR_ACCOUNT}.dkr.ecr.${ECR_REGION}.amazonaws.com"
+            REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY }}"
+            REPO_URL="${ECR_URL}/${REPO_NAME}"
+
+            # Login a ECR
+            echo "Iniciando sesión en ECR..."
+            aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
+
+            # Pull de la imagen
+            echo "Descargando imagen: ${REPO_URL}:latest"
+            docker pull ${REPO_URL}:latest
+
+            # Crear archivo de configuración nginx
+            mkdir -p ~/nginx/conf.d
+            cat > ~/nginx/conf.d/default.conf << EOF
+            server {
+                listen 80;
+                index index.php index.html;
+                error_log  /var/log/nginx/error.log;
+                access_log /var/log/nginx/access.log;
+                root /var/www/html/public;
+
+                location ~ \.php$ {
+                    try_files \$uri =404;
+                    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                    fastcgi_pass app:9000;
+                    fastcgi_index index.php;
+                    include fastcgi_params;
+                    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+                    fastcgi_param PATH_INFO \$fastcgi_path_info;
+                }
+
+                location / {
+                    try_files \$uri \$uri/ /index.php?\$query_string;
+                    gzip_static on;
+                }
+            }
+            EOF
+
+            # Crear docker-compose.yml
+            cat > ~/docker-compose.yml << EOF
+            version: '3.8'
+
+            services:
+              # PHP Application
+              app:
+                image: ${REPO_URL}:latest
+                container_name: laravel-api-app
+                restart: unless-stopped
+                working_dir: /var/www/html
+                networks:
+                  - laravel-network
+                depends_on:
+                  - db
+                  - redis
+
+              # Nginx Web Server
+              nginx:
+                image: nginx:alpine
+                container_name: laravel-api-nginx
+                restart: unless-stopped
+                ports:
+                  - "8080:80"
+                volumes:
+                  - ./nginx/conf.d:/etc/nginx/conf.d
+                networks:
+                  - laravel-network
+                depends_on:
+                  - app
+
+              # MySQL Database
+              db:
+                image: mysql:8.0
+                container_name: laravel-api-db
+                restart: unless-stopped
+                environment:
+                  MYSQL_DATABASE: ${{ secrets.RDS_DATABASE }}
+                  MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
+                  MYSQL_PASSWORD: ${{ secrets.RDS_PASSWORD }}
+                  MYSQL_USER: ${{ secrets.RDS_USERNAME }}
+                  SERVICE_TAGS: dev
+                  SERVICE_NAME: mysql
+                volumes:
+                  - mysql-data:/var/lib/mysql
+                networks:
+                  - laravel-network
+                healthcheck:
+                  test: ["CMD", "mysqladmin", "ping", "-p${{ secrets.RDS_PASSWORD }}"]
+                  retries: 3
+                  timeout: 5s
+
+              # Redis for Cache and Queue
+              redis:
+                image: redis:alpine
+                container_name: laravel-api-redis
+                restart: unless-stopped
+                networks:
+                  - laravel-network
+                volumes:
+                  - redis-data:/data
+
+              # PHPMyAdmin for Database Management
+              phpmyadmin:
+                image: phpmyadmin/phpmyadmin
+                container_name: laravel-api-phpmyadmin
+                restart: unless-stopped
+                ports:
+                  - "8081:80"
+                environment:
+                  PMA_HOST: db
+                  MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
+                networks:
+                  - laravel-network
+                depends_on:
+                  - db
+
+            # Volumes
+            volumes:
+              mysql-data:
+                driver: local
+              redis-data:
+                driver: local
+
+            # Networks
+            networks:
+              laravel-network:
+                driver: bridge
+            EOF
+
+            # Iniciar contenedores
+            echo "Iniciando contenedores..."
+            cd ~
+            docker-compose down
+            docker-compose up -d
+
+            # Verificar
+            echo "Estado de los contenedores:"
+            docker ps
+
+            # Ejecutar migraciones
+            if docker ps | grep -q laravel-api-app; then
+              docker-compose exec -T app php artisan migrate --force
+              docker-compose exec -T app php artisan config:cache
+              docker-compose exec -T app php artisan route:cache
+              docker-compose exec -T app php artisan view:cache
+              echo "Despliegue completado con éxito!"
+            else
+              echo "ERROR: El contenedor app no está ejecutándose"
+              docker-compose logs app
+              exit 1
+            fi
