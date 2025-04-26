@@ -6,74 +6,74 @@ on:
   workflow_dispatch:
 
 jobs:
-  # test:
-  #   name: Test Application
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #
-  #     - name: Setup PHP
-  #       uses: shivammathur/setup-php@v2
-  #       with:
-  #         php-version: '8.2'
-  #         extensions: mbstring, intl, pdo_mysql, zip, exif, pcntl, bcmath, gd
-  #
-  #     - name: Copy .env
-  #       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
-  #
-  #     - name: Install Dependencies
-  #       run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-  #
-  #     - name: Generate key
-  #       run: php artisan key:generate
-  #
-  #     - name: Directory Permissions
-  #       run: chmod -R 777 storage bootstrap/cache
-  #
-  #     - name: Create Database
-  #       run: |
-  #         mkdir -p database
-  #         touch database/database.sqlite
-  #
-  #     - name: Execute tests
-  #       env:
-  #         DB_CONNECTION: sqlite
-  #         DB_DATABASE: database/database.sqlite
-  #       run: vendor/bin/phpunit
+  test:
+    name: Test Application
+    runs-on: ubuntu-latest
 
-  # build:
-  #   name: Build and Push Docker Image
-  #   needs: test
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
-  #
-  #     - name: Login to Amazon ECR
-  #       id: login-ecr
-  #       uses: aws-actions/amazon-ecr-login@v1
-  #
-  #     - name: Build, tag, and push image to Amazon ECR
-  #       env:
-  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
-  #         IMAGE_TAG: ${{ github.sha }}
-  #       run: |
-  #         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, pdo_mysql, zip, exif, pcntl, bcmath, gd
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Generate key
+        run: php artisan key:generate
+
+      - name: Directory Permissions
+        run: chmod -R 777 storage bootstrap/cache
+
+      - name: Create Database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+
+      - name: Execute tests
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: vendor/bin/phpunit
+
+  build:
+    name: Build and Push Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   deploy:
     name: Deploy to EC2
-    # needs: build
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -85,45 +85,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            # Primero reportamos información básica del servidor
-            echo "Conexión SSH establecida correctamente!"
-            echo "Hostname: $(hostname)"
-            echo "Fecha y hora: $(date)"
-            echo "Usuario: $(whoami)"
-            echo "Directorio actual: $(pwd)"
-
-            # Instalando dependencias necesarias si no existen
-            if ! command -v docker &> /dev/null; then
-              echo "Instalando Docker..."
-              sudo apt update
-              sudo apt install -y docker.io
-              sudo systemctl enable docker
-              sudo systemctl start docker
-              sudo usermod -aG docker $(whoami)
-              echo "Docker instalado."
-            else
-              echo "Docker ya está instalado: $(docker --version)"
-            fi
-
-            if ! command -v docker-compose &> /dev/null; then
-              echo "Instalando Docker Compose..."
-              sudo apt update
-              sudo apt install -y docker-compose
-              echo "Docker Compose instalado."
-            else
-              echo "Docker Compose ya está instalado: $(docker-compose --version)"
-            fi
-
-            # Instalamos AWS CLI si no existe
-            if ! command -v aws &> /dev/null; then
-              echo "Instalando AWS CLI..."
-              sudo apt update
-              sudo apt install -y awscli
-              echo "AWS CLI instalado."
-            else
-              echo "AWS CLI ya está instalado: $(aws --version)"
-            fi
-
             # Configurar variables
             export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
             export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
@@ -171,7 +132,7 @@ jobs:
             }
             EOF
 
-            # Crear docker-compose.yml
+            # Crear docker-compose.yml simplificado
             cat > ~/docker-compose.yml << EOF
             version: '3.8'
 
@@ -181,12 +142,21 @@ jobs:
                 image: ${REPO_URL}:latest
                 container_name: laravel-api-app
                 restart: unless-stopped
-                working_dir: /var/www/html
                 networks:
                   - laravel-network
                 depends_on:
                   - db
                   - redis
+                environment:
+                  DB_HOST: db
+                  DB_PORT: 3306
+                  DB_DATABASE: ${{ secrets.RDS_DATABASE }}
+                  DB_USERNAME: ${{ secrets.RDS_USERNAME }}
+                  DB_PASSWORD: ${{ secrets.RDS_PASSWORD }}
+                  REDIS_HOST: redis
+                  APP_ENV: production
+                  APP_DEBUG: false
+                  APP_KEY: ${{ secrets.APP_KEY }}
 
               # Nginx Web Server
               nginx:
@@ -212,16 +182,10 @@ jobs:
                   MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
                   MYSQL_PASSWORD: ${{ secrets.RDS_PASSWORD }}
                   MYSQL_USER: ${{ secrets.RDS_USERNAME }}
-                  SERVICE_TAGS: dev
-                  SERVICE_NAME: mysql
                 volumes:
                   - mysql-data:/var/lib/mysql
                 networks:
                   - laravel-network
-                healthcheck:
-                  test: ["CMD", "mysqladmin", "ping", "-p${{ secrets.RDS_PASSWORD }}"]
-                  retries: 3
-                  timeout: 5s
 
               # Redis for Cache and Queue
               redis:
@@ -262,24 +226,16 @@ jobs:
             EOF
 
             # Iniciar contenedores
-            echo "Iniciando contenedores..."
             cd ~
             docker-compose down
             docker-compose up -d
 
-            # Verificar
-            echo "Estado de los contenedores:"
-            docker ps
+            # Esperar a que los contenedores estén listos
+            echo "Esperando a que los contenedores estén listos..."
+            sleep 10
 
-            # Ejecutar migraciones
-            if docker ps | grep -q laravel-api-app; then
-              docker-compose exec -T app php artisan migrate --force
-              docker-compose exec -T app php artisan config:cache
-              docker-compose exec -T app php artisan route:cache
-              docker-compose exec -T app php artisan view:cache
-              echo "Despliegue completado con éxito!"
-            else
-              echo "ERROR: El contenedor app no está ejecutándose"
-              docker-compose logs app
-              exit 1
-            fi
+            # Ejecutar migraciones y optimizaciones
+            echo "Ejecutando migraciones..."
+            docker exec laravel-api-app php artisan migrate --force
+
+            echo "Despliegue completado con éxito!"
