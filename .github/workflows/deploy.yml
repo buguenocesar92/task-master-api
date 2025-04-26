@@ -17,7 +17,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, intl, pdo_mysql, zip, exif, pcntl, bcmath, gd
+          extensions: mbstring, intl, pdo_pgsql, zip, exif, pcntl, bcmath, gd
 
       - name: Copy .env
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -117,7 +117,7 @@ jobs:
             echo "<?php echo 'Hello from Laravel Test File!'; ?>" > ~/app-files/public/test.php
             chmod 755 ~/app-files/public/test.php
 
-            # Reemplazar docker-compose.yml completamente con una versión con volúmenes compartidos
+            # Reemplazar docker-compose.yml completamente con una versión simplificada
             cat > ~/docker-compose.yml << EOF
             version: '3.8'
 
@@ -133,11 +133,11 @@ jobs:
                 networks:
                   - laravel-network
                 depends_on:
-                  - db
                   - redis
                 environment:
-                  DB_HOST: db
-                  DB_PORT: 3306
+                  DB_CONNECTION: pgsql
+                  DB_HOST: ${{ secrets.RDS_HOST }}
+                  DB_PORT: 5432
                   DB_DATABASE: ${{ secrets.RDS_DATABASE }}
                   DB_USERNAME: ${{ secrets.RDS_USERNAME }}
                   DB_PASSWORD: ${{ secrets.RDS_PASSWORD }}
@@ -161,21 +161,6 @@ jobs:
                 depends_on:
                   - app
 
-              # MySQL Database
-              db:
-                image: mysql:8.0
-                container_name: laravel-api-db
-                restart: unless-stopped
-                environment:
-                  MYSQL_DATABASE: ${{ secrets.RDS_DATABASE }}
-                  MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-                  MYSQL_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-                  MYSQL_USER: ${{ secrets.RDS_USERNAME }}
-                volumes:
-                  - mysql-data:/var/lib/mysql
-                networks:
-                  - laravel-network
-
               # Redis for Cache and Queue
               redis:
                 image: redis:alpine
@@ -186,25 +171,8 @@ jobs:
                 volumes:
                   - redis-data:/data
 
-              # PHPMyAdmin for Database Management
-              phpmyadmin:
-                image: phpmyadmin/phpmyadmin
-                container_name: laravel-api-phpmyadmin
-                restart: unless-stopped
-                ports:
-                  - "8081:80"
-                environment:
-                  PMA_HOST: db
-                  MYSQL_ROOT_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-                networks:
-                  - laravel-network
-                depends_on:
-                  - db
-
             # Volumes
             volumes:
-              mysql-data:
-                driver: local
               redis-data:
                 driver: local
               app-storage:
@@ -273,9 +241,9 @@ jobs:
             LOG_DEPRECATIONS_CHANNEL=null
             LOG_LEVEL=debug
 
-            DB_CONNECTION=mysql
-            DB_HOST=db
-            DB_PORT=3306
+            DB_CONNECTION=pgsql
+            DB_HOST=${{ secrets.RDS_HOST }}
+            DB_PORT=5432
             DB_DATABASE=${{ secrets.RDS_DATABASE }}
             DB_USERNAME=${{ secrets.RDS_USERNAME }}
             DB_PASSWORD=${{ secrets.RDS_PASSWORD }}
@@ -294,6 +262,20 @@ jobs:
             else
               # Asegurar que APP_KEY está establecido
               docker exec laravel-api-app sh -c "grep -q 'APP_KEY=' /var/www/html/.env && sed -i 's/^APP_KEY=.*/APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH\/tfdWnTsqTr4lk6FEBk=/' /var/www/html/.env || echo 'APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH/tfdWnTsqTr4lk6FEBk=' >> /var/www/html/.env"
+
+              # Actualizar las variables de la base de datos para usar PostgreSQL
+              docker exec laravel-api-app sh -c "sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=pgsql/' /var/www/html/.env"
+              docker exec laravel-api-app sh -c "sed -i 's/^DB_PORT=.*/DB_PORT=5432/' /var/www/html/.env"
+              docker exec laravel-api-app sh -c "sed -i 's/^DB_HOST=.*/DB_HOST=${{ secrets.RDS_HOST }}/' /var/www/html/.env"
+              docker exec laravel-api-app sh -c "sed -i 's/^DB_DATABASE=.*/DB_DATABASE=${{ secrets.RDS_DATABASE }}/' /var/www/html/.env"
+              docker exec laravel-api-app sh -c "sed -i 's/^DB_USERNAME=.*/DB_USERNAME=${{ secrets.RDS_USERNAME }}/' /var/www/html/.env"
+              docker exec laravel-api-app sh -c "sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=${{ secrets.RDS_PASSWORD }}/' /var/www/html/.env"
+            fi
+
+            # Verificar que las extensiones PHP para PostgreSQL estén instaladas
+            echo "Verificando extensiones PHP requeridas..."
+            if ! docker exec laravel-api-app php -m | grep -q pdo_pgsql; then
+              echo "¡ALERTA! La extensión pdo_pgsql no está instalada. Verificar Dockerfile para asegurar que incluye esta extensión."
             fi
 
             # Limpiar cachés de Laravel para asegurar la carga correcta
@@ -358,16 +340,9 @@ jobs:
             echo "Verificando estado de los contenedores..."
             docker ps
 
-            # Verificar si el contenedor laravel-api-app existe antes de ejecutar migraciones
-            if docker ps -q --filter "name=laravel-api-app" | grep -q .; then
-              echo "Ejecutando migraciones..."
-              docker exec -w /var/www/html laravel-api-app php artisan migrate --force
-            else
-              echo "ERROR: El contenedor laravel-api-app no está en ejecución. Verificando logs..."
-              docker-compose logs app
-              echo "Mostrando contenedores en ejecución:"
-              docker ps -a
-            fi
+            # Ejecutar migraciones
+            echo "Ejecutando migraciones..."
+            docker exec -w /var/www/html laravel-api-app php artisan migrate --force
 
             # Regenerar el caché de configuración después de todo
             echo "Regenerando cachés..."
