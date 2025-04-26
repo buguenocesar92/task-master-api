@@ -94,6 +94,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 300s  # Aumentar el timeout a 5 minutos
+          command_timeout: 120s  # Timeout para cada comando individual
           script: |
             # Obtener URL completa del repositorio ECR
             ECR_ACCOUNT="${{ secrets.AWS_ACCOUNT_ID }}"  # Número de cuenta AWS
@@ -107,7 +109,7 @@ jobs:
             export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
             export AWS_DEFAULT_REGION="${ECR_REGION}"
 
-            # Login a ECR (forma más robusta)
+            # Login a ECR
             echo "Iniciando sesión en ECR..."
             aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
 
