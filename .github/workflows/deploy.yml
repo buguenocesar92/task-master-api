@@ -79,15 +79,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Copy docker-compose file to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: "~/"
-
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
@@ -119,11 +110,7 @@ jobs:
 
             # Pull de la imagen más reciente
             echo "Descargando imagen: ${REPO_URL}:latest"
-            docker pull ${REPO_URL}:latest || {
-              echo "Error al descargar la imagen. Verificando repositorio..."
-              aws ecr describe-images --repository-name ${REPO_NAME} || echo "El repositorio no existe o no tiene imágenes"
-              exit 1
-            }
+            docker pull ${REPO_URL}:latest
 
             # Crear un archivo .env con la URL del repositorio ECR y configuración de base de datos
             echo "ECR_REPOSITORY_URI=${REPO_URL}" > .env
@@ -132,9 +119,97 @@ jobs:
             echo "DB_USERNAME=${{ secrets.RDS_USERNAME }}" >> .env
             echo "DB_HOST=${{ secrets.RDS_HOST }}" >> .env
 
+            # Crear el archivo docker-compose.yml directamente
+            cat > docker-compose.yml << 'EOF'
+            version: '3.8'
+
+            services:
+              # PHP Application
+              app:
+                image: ${ECR_REPOSITORY_URI}:latest
+                container_name: laravel-api-app
+                restart: unless-stopped
+                working_dir: /var/www/html
+                networks:
+                  - laravel-network
+                depends_on:
+                  - db
+                  - redis
+
+              # Nginx Web Server
+              nginx:
+                image: nginx:alpine
+                container_name: laravel-api-nginx
+                restart: unless-stopped
+                ports:
+                  - "8080:80"
+                networks:
+                  - laravel-network
+                depends_on:
+                  - app
+
+              # MySQL Database
+              db:
+                image: mysql:8.0
+                container_name: laravel-api-db
+                restart: unless-stopped
+                environment:
+                  MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+                  MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+                  MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+                  MYSQL_USER: ${DB_USERNAME:-laravel}
+                  SERVICE_TAGS: dev
+                  SERVICE_NAME: mysql
+                volumes:
+                  - mysql-data:/var/lib/mysql
+                networks:
+                  - laravel-network
+                healthcheck:
+                  test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD:-password}"]
+                  retries: 3
+                  timeout: 5s
+
+              # Redis for Cache and Queue
+              redis:
+                image: redis:alpine
+                container_name: laravel-api-redis
+                restart: unless-stopped
+                networks:
+                  - laravel-network
+                volumes:
+                  - redis-data:/data
+
+              # PHPMyAdmin for Database Management
+              phpmyadmin:
+                image: phpmyadmin/phpmyadmin
+                container_name: laravel-api-phpmyadmin
+                restart: unless-stopped
+                ports:
+                  - "8081:80"
+                environment:
+                  PMA_HOST: db
+                  MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+                networks:
+                  - laravel-network
+                depends_on:
+                  - db
+
+            # Volumes
+            volumes:
+              mysql-data:
+                driver: local
+              redis-data:
+                driver: local
+
+            # Networks
+            networks:
+              laravel-network:
+                driver: bridge
+            EOF
+
             # Verificar el contenido del docker-compose.yml
             echo "Contenido del docker-compose.yml:"
-            cat docker-compose.yml
+            ls -la
 
             # Iniciar contenedores
             echo "Deteniendo contenedores existentes..."
