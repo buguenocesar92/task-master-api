@@ -96,14 +96,32 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Obtener URL completa del repositorio ECR
-            ECR_URL="${{ secrets.AWS_REGION }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
-            REPO_URL="${ECR_URL}/${{ secrets.AWS_ECR_REPOSITORY }}"
+            ECR_ACCOUNT="${{ secrets.AWS_ACCOUNT_ID }}"  # Número de cuenta AWS
+            ECR_REGION="${{ secrets.AWS_REGION }}"
+            ECR_URL="${ECR_ACCOUNT}.dkr.ecr.${ECR_REGION}.amazonaws.com"
+            REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY }}"
+            REPO_URL="${ECR_URL}/${REPO_NAME}"
 
-            # Login a ECR
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${ECR_URL}
+            # Configurar credenciales de AWS
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_DEFAULT_REGION="${ECR_REGION}"
+
+            # Login a ECR (forma más robusta)
+            echo "Iniciando sesión en ECR..."
+            aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
+
+            # Verificar el login
+            echo "Verificando repositorios disponibles..."
+            aws ecr describe-repositories
 
             # Pull de la imagen más reciente
-            docker pull ${REPO_URL}:latest
+            echo "Descargando imagen: ${REPO_URL}:latest"
+            docker pull ${REPO_URL}:latest || {
+              echo "Error al descargar la imagen. Verificando repositorio..."
+              aws ecr describe-images --repository-name ${REPO_NAME} || echo "El repositorio no existe o no tiene imágenes"
+              exit 1
+            }
 
             # Crear un archivo .env con la URL del repositorio ECR
             echo "ECR_REPOSITORY_URI=${REPO_URL}" > .env
@@ -113,7 +131,9 @@ jobs:
             cat docker-compose.yml
 
             # Iniciar contenedores
+            echo "Deteniendo contenedores existentes..."
             docker-compose down
+            echo "Iniciando nuevos contenedores..."
             docker-compose up -d
 
             # Esperar a que el contenedor esté listo
