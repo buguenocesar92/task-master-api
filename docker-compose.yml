@@ -3,15 +3,28 @@ version: '3.8'
 services:
   # PHP Application
   app:
-    image: ${ECR_REPOSITORY_URI}:latest
+    image: ${ECR_REPOSITORY_URI:-php:8.2-fpm}:latest
     container_name: laravel-api-app
     restart: unless-stopped
     working_dir: /var/www/html
+    volumes:
+      - app-storage:/var/www/html/storage
+      - app-public:/var/www/html/public
     networks:
       - laravel-network
     depends_on:
       - db
       - redis
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-laravel}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_KEY: ${APP_KEY}
 
   # Nginx Web Server
   nginx:
@@ -20,6 +33,9 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - app-public:/var/www/html/public
     networks:
       - laravel-network
     depends_on:
@@ -76,6 +92,10 @@ volumes:
   mysql-data:
     driver: local
   redis-data:
+    driver: local
+  app-storage:
+    driver: local
+  app-public:
     driver: local
 
 # Networks
