@@ -289,7 +289,9 @@ jobs:
           echo "Comando enviado con ID: $COMMAND_ID"
 
           # Espera a que se complete el comando
-          aws ssm wait command-executed --command-id $COMMAND_ID --instance-id ${{ secrets.EC2_INSTANCE_ID }}
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}"
 
           # Muestra el resultado
           aws ssm get-command-invocation \
