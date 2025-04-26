@@ -142,6 +142,8 @@ jobs:
                 image: ${REPO_URL}:latest
                 container_name: laravel-api-app
                 restart: unless-stopped
+                volumes:
+                  - app-storage:/var/www/html/storage
                 networks:
                   - laravel-network
                 depends_on:
@@ -167,6 +169,7 @@ jobs:
                   - "8080:80"
                 volumes:
                   - ./nginx/conf.d:/etc/nginx/conf.d
+                  - app-public:/var/www/html/public:ro
                 networks:
                   - laravel-network
                 depends_on:
@@ -218,6 +221,10 @@ jobs:
                 driver: local
               redis-data:
                 driver: local
+              app-storage:
+                driver: local
+              app-public:
+                driver: local
 
             # Networks
             networks:
@@ -266,5 +273,11 @@ jobs:
               echo "Mostrando contenedores en ejecución:"
               docker ps -a
             fi
+
+            # Después de iniciar los contenedores, copiamos los archivos públicos
+            # del contenedor app al volumen compartido para que Nginx pueda acceder
+            echo "Copiando archivos públicos de Laravel al volumen compartido..."
+            docker cp laravel-api-app:/var/www/html/public/. /var/lib/docker/volumes/app-public/_data/
+            docker exec laravel-api-nginx chmod -R 755 /var/www/html/public
 
             echo "Despliegue completado con éxito!"
