@@ -253,6 +253,11 @@ jobs:
             echo "Esperando a que los contenedores estén listos..."
             sleep 15
 
+            # Asegurarse de que las carpetas existen y tienen permisos correctos
+            docker exec laravel-api-app sh -c "mkdir -p /var/www/html/storage/framework/sessions /var/www/html/storage/framework/views /var/www/html/storage/framework/cache /var/www/html/bootstrap/cache"
+            docker exec laravel-api-app sh -c "chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache"
+            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache"
+
             # CRUCIAL: Verificar si .env existe, y si no, crearlo y configurarlo
             echo "Verificando archivo .env..."
             if ! docker exec laravel-api-app test -f /var/www/html/.env; then
@@ -260,7 +265,7 @@ jobs:
               docker exec laravel-api-app sh -c 'cat > /var/www/html/.env << "EOF"
             APP_NAME=Laravel
             APP_ENV=production
-            APP_KEY=
+            APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH/tfdWnTsqTr4lk6FEBk=
             APP_DEBUG=false
             APP_URL=http://localhost:8080
 
@@ -286,9 +291,9 @@ jobs:
             REDIS_PASSWORD=null
             REDIS_PORT=6379
             EOF'
-
-              # Generar clave de aplicación
-              docker exec laravel-api-app php /var/www/html/artisan key:generate
+            else
+              # Asegurar que APP_KEY está establecido
+              docker exec laravel-api-app sh -c "grep -q 'APP_KEY=' /var/www/html/.env && sed -i 's/^APP_KEY=.*/APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH\/tfdWnTsqTr4lk6FEBk=/' /var/www/html/.env || echo 'APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH/tfdWnTsqTr4lk6FEBk=' >> /var/www/html/.env"
             fi
 
             # Limpiar cachés de Laravel para asegurar la carga correcta
@@ -345,6 +350,10 @@ jobs:
             # Reiniciar Nginx para aplicar todos los cambios
             docker restart laravel-api-nginx
 
+            # Crear tabla de migraciones si no existe
+            echo "Creando tabla de migraciones..."
+            docker exec -w /var/www/html laravel-api-app sh -c 'php artisan migrate:install --no-interaction'
+
             # Verificar que los contenedores estén en ejecución
             echo "Verificando estado de los contenedores..."
             docker ps
@@ -359,6 +368,11 @@ jobs:
               echo "Mostrando contenedores en ejecución:"
               docker ps -a
             fi
+
+            # Regenerar el caché de configuración después de todo
+            echo "Regenerando cachés..."
+            docker exec -w /var/www/html laravel-api-app php artisan config:cache
+            docker exec -w /var/www/html laravel-api-app php artisan route:cache
 
             # Probar que la aplicación responde
             echo "Probando que la aplicación responde:"
