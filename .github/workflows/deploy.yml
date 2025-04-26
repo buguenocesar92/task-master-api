@@ -105,34 +105,19 @@ jobs:
             echo "Descargando imagen: ${REPO_URL}:latest"
             docker pull ${REPO_URL}:latest
 
-            # Crear archivo de configuración nginx
-            mkdir -p ~/nginx/conf.d
-            cat > ~/nginx/conf.d/default.conf << EOF
-            server {
-                listen 80;
-                index index.php index.html;
-                error_log  /var/log/nginx/error.log;
-                access_log /var/log/nginx/access.log;
-                root /var/www/html/public;
+            # Crear directorio para archivos de la aplicación
+            mkdir -p ~/app-files/public
+            mkdir -p ~/app-files/storage/framework/sessions
+            mkdir -p ~/app-files/storage/framework/views
+            mkdir -p ~/app-files/storage/framework/cache
+            mkdir -p ~/app-files/storage/logs
+            mkdir -p ~/app-files/bootstrap/cache
 
-                location ~ \.php$ {
-                    try_files \$uri =404;
-                    fastcgi_split_path_info ^(.+\.php)(/.+)$;
-                    fastcgi_pass app:9000;
-                    fastcgi_index index.php;
-                    include fastcgi_params;
-                    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-                    fastcgi_param PATH_INFO \$fastcgi_path_info;
-                }
+            # Crear un archivo test.php simple en la carpeta pública
+            echo "<?php echo 'Hello from Laravel Test File!'; ?>" > ~/app-files/public/test.php
+            chmod 755 ~/app-files/public/test.php
 
-                location / {
-                    try_files \$uri \$uri/ /index.php?\$query_string;
-                    gzip_static on;
-                }
-            }
-            EOF
-
-            # Crear docker-compose.yml simplificado
+            # Reemplazar docker-compose.yml completamente
             cat > ~/docker-compose.yml << EOF
             version: '3.8'
 
@@ -143,7 +128,9 @@ jobs:
                 container_name: laravel-api-app
                 restart: unless-stopped
                 volumes:
-                  - app-storage:/var/www/html/storage
+                  - ./app-files/storage:/var/www/html/storage
+                  - ./app-files/bootstrap/cache:/var/www/html/bootstrap/cache
+                  - ./app-files/public:/var/www/html/public
                 networks:
                   - laravel-network
                 depends_on:
@@ -169,7 +156,7 @@ jobs:
                   - "8080:80"
                 volumes:
                   - ./nginx/conf.d:/etc/nginx/conf.d
-                  - app-public:/var/www/html/public:ro
+                  - ./app-files/public:/var/www/html/public:ro
                 networks:
                   - laravel-network
                 depends_on:
@@ -221,10 +208,6 @@ jobs:
                 driver: local
               redis-data:
                 driver: local
-              app-storage:
-                driver: local
-              app-public:
-                driver: local
 
             # Networks
             networks:
@@ -232,32 +215,54 @@ jobs:
                 driver: bridge
             EOF
 
-            # Iniciar contenedores
-            cd ~
+            # Crear una configuración Nginx sencilla que funcione
+            mkdir -p ~/nginx/conf.d
+            cat > ~/nginx/conf.d/default.conf << EOF
+            server {
+                listen 80;
+                index index.php index.html;
+                server_name _;
+                error_log  /var/log/nginx/error.log;
+                access_log /var/log/nginx/access.log;
+                root /var/www/html/public;
 
-            # Detener todos los contenedores existentes
-            echo "Limpiando contenedores existentes..."
-            docker-compose down || true
-            docker stop $(docker ps -aq) || true
-            docker rm $(docker ps -aq) || true
+                location / {
+                    try_files \$uri \$uri/ /index.php?\$query_string;
+                }
 
-            # Limpiar también el entorno de prueba si existe
-            if [ -d ~/simple-test ]; then
-              cd ~/simple-test
-              docker-compose down || true
-              cd ~
-            fi
+                location ~ \.php$ {
+                    try_files \$uri =404;
+                    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                    fastcgi_pass app:9000;
+                    fastcgi_index index.php;
+                    include fastcgi_params;
+                    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+                    fastcgi_param PATH_INFO \$fastcgi_path_info;
+                }
+            }
+            EOF
 
-            # Verificar si el docker-compose.yml es válido
-            echo "Validando docker-compose.yml..."
-            docker-compose config
+            # Establecer permisos
+            echo "Configurando permisos correctos..."
+            chmod -R 777 ~/app-files
 
-            echo "Iniciando nuevos contenedores..."
+            # Iniciar contenedores con la nueva configuración
+            docker-compose down
             docker-compose up -d
 
             # Esperar a que los contenedores estén listos
             echo "Esperando a que los contenedores estén listos..."
             sleep 15
+
+            # Extraer archivos de la aplicación del contenedor al host
+            echo "Copiando archivos de la aplicación del contenedor al host..."
+            docker cp laravel-api-app:/var/www/html/public/. ~/app-files/public/
+
+            # Establecer permisos nuevamente después de la copia
+            chmod -R 777 ~/app-files
+
+            # Reiniciar Nginx
+            docker restart laravel-api-nginx
 
             # Verificar que los contenedores estén en ejecución
             echo "Verificando estado de los contenedores..."
@@ -274,35 +279,6 @@ jobs:
               docker ps -a
             fi
 
-            # Después de iniciar los contenedores, copiamos los archivos públicos
-            # del contenedor app al volumen compartido para que Nginx pueda acceder
-            echo "Copiando archivos públicos de Laravel al volumen compartido..."
-            docker cp laravel-api-app:/var/www/html/public/. /var/lib/docker/volumes/app-public/_data/
-
-            # Corregir permisos para solucionar el 403 Forbidden
-            echo "Configurando permisos correctos..."
-
-            # Asegurar que el directorio del volumen tenga los permisos adecuados
-            sudo chmod -R 755 /var/lib/docker/volumes/app-public/_data/
-            sudo chown -R 1000:1000 /var/lib/docker/volumes/app-public/_data/
-
-            # Corregir permisos dentro del contenedor PHP
-            docker exec laravel-api-app sh -c "chmod -R 755 /var/www/html/public"
-            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage"
-            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/bootstrap/cache"
-
-            # Verificar que el index.php existe en la carpeta pública
-            echo "Verificando archivos en la carpeta pública..."
-            docker exec laravel-api-app ls -la /var/www/html/public/
-
-            # Crear un archivo PHP simple para probar
-            echo "Creando archivo de prueba..."
-            docker exec laravel-api-app sh -c 'echo "<?php echo \"Hello from Laravel\"; ?>" > /var/www/html/public/test.php'
-            docker exec laravel-api-app chmod 755 /var/www/html/public/test.php
-
-            # Reiniciar Nginx para aplicar los cambios
-            docker restart laravel-api-nginx
-
             echo "Despliegue completado con éxito!"
-            echo "Prueba la aplicación en: http://[IP-del-servidor]:8080"
-            echo "Prueba el archivo de test en: http://[IP-del-servidor]:8080/test.php"
+            echo "Prueba la aplicación en: http://$(curl -s http://checkip.amazonaws.com):8080"
+            echo "Prueba el archivo de test en: http://$(curl -s http://checkip.amazonaws.com):8080/test.php"
