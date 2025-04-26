@@ -155,7 +155,7 @@ jobs:
                   DB_PASSWORD: ${{ secrets.RDS_PASSWORD }}
                   REDIS_HOST: redis
                   APP_ENV: production
-                  APP_DEBUG: false
+                  APP_DEBUG: "false"
                   APP_KEY: ${{ secrets.APP_KEY }}
 
               # Nginx Web Server
@@ -227,15 +227,44 @@ jobs:
 
             # Iniciar contenedores
             cd ~
-            docker-compose down
+
+            # Detener todos los contenedores existentes
+            echo "Limpiando contenedores existentes..."
+            docker-compose down || true
+            docker stop $(docker ps -aq) || true
+            docker rm $(docker ps -aq) || true
+
+            # Limpiar también el entorno de prueba si existe
+            if [ -d ~/simple-test ]; then
+              cd ~/simple-test
+              docker-compose down || true
+              cd ~
+            fi
+
+            # Verificar si el docker-compose.yml es válido
+            echo "Validando docker-compose.yml..."
+            docker-compose config
+
+            echo "Iniciando nuevos contenedores..."
             docker-compose up -d
 
             # Esperar a que los contenedores estén listos
             echo "Esperando a que los contenedores estén listos..."
-            sleep 10
+            sleep 15
 
-            # Ejecutar migraciones y optimizaciones
-            echo "Ejecutando migraciones..."
-            docker exec laravel-api-app php artisan migrate --force
+            # Verificar que los contenedores estén en ejecución
+            echo "Verificando estado de los contenedores..."
+            docker ps
+
+            # Verificar si el contenedor laravel-api-app existe antes de ejecutar migraciones
+            if docker ps -q --filter "name=laravel-api-app" | grep -q .; then
+              echo "Ejecutando migraciones..."
+              docker exec -w /var/www/html laravel-api-app php artisan migrate --force
+            else
+              echo "ERROR: El contenedor laravel-api-app no está en ejecución. Verificando logs..."
+              docker-compose logs app
+              echo "Mostrando contenedores en ejecución:"
+              docker ps -a
+            fi
 
             echo "Despliegue completado con éxito!"
