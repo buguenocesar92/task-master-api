@@ -86,7 +86,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy to EC2 using AWS CLI
+      - name: Deploy to EC2 using AWS CLI and SSM
         run: |
           # Uso del AWS Systems Manager (SSM) en lugar de SSH
           # Este enfoque requiere que el EC2 tenga el agente SSM instalado
@@ -117,14 +117,41 @@ jobs:
           echo "Descargando imagen: ${REPO_URL}:latest"
           docker pull ${REPO_URL}:latest
 
-          # Crear docker-compose
-          cat > ~/docker-compose.yml << 'EOF'
+          # Crear archivo de configuración nginx
+          mkdir -p ~/nginx/conf.d
+          cat > ~/nginx/conf.d/default.conf << 'NGINX_CONF'
+          server {
+              listen 80;
+              index index.php index.html;
+              error_log  /var/log/nginx/error.log;
+              access_log /var/log/nginx/access.log;
+              root /var/www/html/public;
+
+              location ~ \.php$ {
+                  try_files $uri =404;
+                  fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                  fastcgi_pass app:9000;
+                  fastcgi_index index.php;
+                  include fastcgi_params;
+                  fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                  fastcgi_param PATH_INFO $fastcgi_path_info;
+              }
+
+              location / {
+                  try_files $uri $uri/ /index.php?$query_string;
+                  gzip_static on;
+              }
+          }
+          NGINX_CONF
+
+          # Crear docker-compose.yml
+          cat > ~/docker-compose.yml << EOF
           version: '3.8'
 
           services:
             # PHP Application
             app:
-              image: ${ECR_REPOSITORY_URI}:latest
+              image: ${REPO_URL}:latest
               container_name: laravel-api-app
               restart: unless-stopped
               working_dir: /var/www/html
@@ -141,6 +168,8 @@ jobs:
               restart: unless-stopped
               ports:
                 - "8080:80"
+              volumes:
+                - ./nginx/conf.d:/etc/nginx/conf.d
               networks:
                 - laravel-network
               depends_on:
@@ -206,8 +235,7 @@ jobs:
           EOF
 
           # Crear .env
-          echo "ECR_REPOSITORY_URI=${REPO_URL}" > ~/.env
-          echo "DB_DATABASE=${{ secrets.RDS_DATABASE }}" >> ~/.env
+          echo "DB_DATABASE=${{ secrets.RDS_DATABASE }}" > ~/.env
           echo "DB_PASSWORD=${{ secrets.RDS_PASSWORD }}" >> ~/.env
           echo "DB_USERNAME=${{ secrets.RDS_USERNAME }}" >> ~/.env
           echo "DB_HOST=${{ secrets.RDS_HOST }}" >> ~/.env
@@ -223,7 +251,7 @@ jobs:
           docker ps
 
           # Ejecutar migraciones
-          if docker ps | grep -q app; then
+          if docker ps | grep -q laravel-api-app; then
             docker-compose exec -T app php artisan migrate --force
             docker-compose exec -T app php artisan config:cache
             docker-compose exec -T app php artisan route:cache
@@ -236,14 +264,25 @@ jobs:
           fi
           EOL
 
-          # Sube el script al S3 (necesario para usar SSM)
-          aws s3 cp deploy_script.sh s3://${{ secrets.S3_BUCKET }}/deploy_script.sh
+          # Codificar el script en base64 para pasarlo en línea a SSM
+          ENCODED_SCRIPT=$(base64 -w0 deploy_script.sh)
 
-          # Ejecuta el script mediante SSM
+          # Crear un archivo temporal para el comando
+          cat > ssm_command.json << EOF
+          {
+            "commands": [
+              "echo '${ENCODED_SCRIPT}' | base64 -d > /tmp/deploy_script.sh",
+              "chmod +x /tmp/deploy_script.sh",
+              "bash /tmp/deploy_script.sh"
+            ]
+          }
+          EOF
+
+          # Ejecutar comando directamente con SSM sin usar S3
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
-            --document-name "AWS-RunRemoteScript" \
-            --parameters '{"sourceType":["S3"],"sourceInfo":["{\"path\":\"https://s3.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.S3_BUCKET }}/deploy_script.sh\"}"],"commandLine":["bash deploy_script.sh"]}' \
+            --document-name "AWS-RunShellScript" \
+            --parameters file://ssm_command.json \
             --query "Command.CommandId" \
             --output text)
 
