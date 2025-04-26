@@ -1,5 +1,5 @@
 # Task Master API
-asd
+
 Backend API para la aplicación Task Master, desarrollado con Laravel, siguiendo principios de Clean Architecture y TDD.
 
 ## Características
