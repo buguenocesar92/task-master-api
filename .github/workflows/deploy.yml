@@ -123,8 +123,12 @@ jobs:
               exit 1
             }
 
-            # Crear un archivo .env con la URL del repositorio ECR
+            # Crear un archivo .env con la URL del repositorio ECR y configuración de base de datos
             echo "ECR_REPOSITORY_URI=${REPO_URL}" > .env
+            echo "DB_DATABASE=${{ secrets.RDS_DATABASE }}" >> .env
+            echo "DB_PASSWORD=${{ secrets.RDS_PASSWORD }}" >> .env
+            echo "DB_USERNAME=${{ secrets.RDS_USERNAME }}" >> .env
+            echo "DB_HOST=${{ secrets.RDS_HOST }}" >> .env
 
             # Verificar el contenido del docker-compose.yml
             echo "Contenido del docker-compose.yml:"
