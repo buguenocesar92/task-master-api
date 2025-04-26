@@ -85,7 +85,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
+          source: "docker-compose.yml,Dockerfile,.env.example"
           target: "~/"
 
       - name: Deploy to EC2
@@ -95,18 +95,42 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Configurar AWS CLI con credenciales temporales o usar rol IAM
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REPOSITORY }}
-            docker pull ${{ secrets.AWS_ECR_REPOSITORY }}:latest
+            # Configuración del entorno
+            cp .env.example .env
 
-            # Usar los docker-compose.yml que copiamos
+            # Obtener URL completa del repositorio ECR
+            REPO_URL="${{ secrets.AWS_REGION }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}"
+
+            # Login a ECR
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${REPO_URL}
+
+            # Pull de la imagen más reciente
+            docker pull ${REPO_URL}:latest
+
+            # Modificar docker-compose.yml para usar la imagen correcta
+            sed -i "s|image:.*|image: ${REPO_URL}:latest|g" docker-compose.yml
+
+            # Iniciar contenedores
             docker-compose down
             docker-compose up -d
 
-            # Run migrations
-            docker-compose exec -T app php artisan migrate --force
+            # Esperar a que el contenedor esté listo
+            sleep 10
 
-            # Clear caches
-            docker-compose exec -T app php artisan config:cache
-            docker-compose exec -T app php artisan route:cache
-            docker-compose exec -T app php artisan view:cache
+            # Revisar si el contenedor está ejecutándose
+            docker ps
+
+            # Intentar ejecutar comandos solo si el contenedor está en ejecución
+            if docker ps | grep -q app; then
+              # Run migrations
+              docker-compose exec -T app php artisan migrate --force
+
+              # Clear caches
+              docker-compose exec -T app php artisan config:cache
+              docker-compose exec -T app php artisan route:cache
+              docker-compose exec -T app php artisan view:cache
+            else
+              echo "El contenedor app no está ejecutándose. Verificar logs:"
+              docker-compose logs
+              exit 1
+            fi
