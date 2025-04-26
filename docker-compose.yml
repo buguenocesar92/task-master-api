@@ -13,14 +13,17 @@ services:
     networks:
       - laravel-network
     depends_on:
-      - db
       - redis
     environment:
-      DB_HOST: db
-      DB_PORT: 3306
+      # Configuración PostgreSQL RDS
+      DB_CONNECTION: pgsql
+      DB_HOST: ${RDS_HOST:-localhost}
+      DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-laravel}
-      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-password}
+
+      # Configuración general
       REDIS_HOST: redis
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: "${APP_DEBUG:-false}"
@@ -41,27 +44,6 @@ services:
     depends_on:
       - app
 
-  # MySQL Database
-  db:
-    image: mysql:8.0
-    container_name: laravel-api-db
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_USER: ${DB_USERNAME:-laravel}
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
-    volumes:
-      - mysql-data:/var/lib/mysql
-    networks:
-      - laravel-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD:-password}"]
-      retries: 3
-      timeout: 5s
-
   # Redis for Cache and Queue
   redis:
     image: redis:alpine
@@ -72,25 +54,8 @@ services:
     volumes:
       - redis-data:/data
 
-  # PHPMyAdmin for Database Management
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: laravel-api-phpmyadmin
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-    environment:
-      PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-    networks:
-      - laravel-network
-    depends_on:
-      - db
-
 # Volumes
 volumes:
-  mysql-data:
-    driver: local
   redis-data:
     driver: local
   app-storage:

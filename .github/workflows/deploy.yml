@@ -97,6 +97,14 @@ jobs:
             REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY }}"
             REPO_URL="${ECR_URL}/${REPO_NAME}"
 
+            # Generar una clave de aplicación si no existe
+            APP_KEY="${{ secrets.APP_KEY }}"
+            if [ -z "$APP_KEY" ]; then
+              APP_KEY="base64:$(openssl rand -base64 32)"
+              echo "Generada nueva APP_KEY: $APP_KEY"
+              echo "Guárdala en los secretos de GitHub como APP_KEY"
+            fi
+
             # Login a ECR
             echo "Iniciando sesión en ECR..."
             aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
@@ -135,16 +143,38 @@ jobs:
                 depends_on:
                   - redis
                 environment:
-                  DB_CONNECTION: pgsql
-                  DB_HOST: ${{ secrets.RDS_HOST }}
-                  DB_PORT: 5432
-                  DB_DATABASE: ${{ secrets.RDS_DATABASE }}
-                  DB_USERNAME: ${{ secrets.RDS_USERNAME }}
-                  DB_PASSWORD: ${{ secrets.RDS_PASSWORD }}
-                  REDIS_HOST: redis
-                  APP_ENV: production
+                  # Variables de entorno de la aplicación (pasadas directamente en lugar de .env)
+                  APP_NAME: "Laravel"
+                  APP_ENV: "production"
+                  APP_KEY: "${APP_KEY}"
                   APP_DEBUG: "false"
-                  APP_KEY: ${{ secrets.APP_KEY }}
+                  APP_URL: "http://localhost:8080"
+
+                  # Variables de log
+                  LOG_CHANNEL: "stack"
+                  LOG_DEPRECATIONS_CHANNEL: "null"
+                  LOG_LEVEL: "debug"
+
+                  # Configuración PostgreSQL
+                  DB_CONNECTION: "pgsql"
+                  DB_HOST: "${{ secrets.RDS_HOST }}"
+                  DB_PORT: "5432"
+                  DB_DATABASE: "${{ secrets.RDS_DATABASE }}"
+                  DB_USERNAME: "${{ secrets.RDS_USERNAME }}"
+                  DB_PASSWORD: "${{ secrets.RDS_PASSWORD }}"
+
+                  # Configuración de servicios
+                  BROADCAST_DRIVER: "log"
+                  CACHE_DRIVER: "file"
+                  FILESYSTEM_DISK: "local"
+                  QUEUE_CONNECTION: "sync"
+                  SESSION_DRIVER: "file"
+                  SESSION_LIFETIME: "120"
+
+                  # Redis
+                  REDIS_HOST: "redis"
+                  REDIS_PASSWORD: "null"
+                  REDIS_PORT: "6379"
 
               # Nginx Web Server
               nginx:
@@ -225,52 +255,6 @@ jobs:
             docker exec laravel-api-app sh -c "mkdir -p /var/www/html/storage/framework/sessions /var/www/html/storage/framework/views /var/www/html/storage/framework/cache /var/www/html/bootstrap/cache"
             docker exec laravel-api-app sh -c "chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache"
             docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache"
-
-            # CRUCIAL: Verificar si .env existe, y si no, crearlo y configurarlo
-            echo "Verificando archivo .env..."
-            if ! docker exec laravel-api-app test -f /var/www/html/.env; then
-              echo "¡ATENCIÓN! Archivo .env no encontrado. Creando uno básico..."
-              docker exec laravel-api-app sh -c 'cat > /var/www/html/.env << "EOF"
-            APP_NAME=Laravel
-            APP_ENV=production
-            APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH/tfdWnTsqTr4lk6FEBk=
-            APP_DEBUG=false
-            APP_URL=http://localhost:8080
-
-            LOG_CHANNEL=stack
-            LOG_DEPRECATIONS_CHANNEL=null
-            LOG_LEVEL=debug
-
-            DB_CONNECTION=pgsql
-            DB_HOST=${{ secrets.RDS_HOST }}
-            DB_PORT=5432
-            DB_DATABASE=${{ secrets.RDS_DATABASE }}
-            DB_USERNAME=${{ secrets.RDS_USERNAME }}
-            DB_PASSWORD=${{ secrets.RDS_PASSWORD }}
-
-            BROADCAST_DRIVER=log
-            CACHE_DRIVER=file
-            FILESYSTEM_DISK=local
-            QUEUE_CONNECTION=sync
-            SESSION_DRIVER=file
-            SESSION_LIFETIME=120
-
-            REDIS_HOST=redis
-            REDIS_PASSWORD=null
-            REDIS_PORT=6379
-            EOF'
-            else
-              # Asegurar que APP_KEY está establecido
-              docker exec laravel-api-app sh -c "grep -q 'APP_KEY=' /var/www/html/.env && sed -i 's/^APP_KEY=.*/APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH\/tfdWnTsqTr4lk6FEBk=/' /var/www/html/.env || echo 'APP_KEY=base64:qMwDtys72sPpj25+UFJwzMoH/tfdWnTsqTr4lk6FEBk=' >> /var/www/html/.env"
-
-              # Actualizar las variables de la base de datos para usar PostgreSQL
-              docker exec laravel-api-app sh -c "sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=pgsql/' /var/www/html/.env"
-              docker exec laravel-api-app sh -c "sed -i 's/^DB_PORT=.*/DB_PORT=5432/' /var/www/html/.env"
-              docker exec laravel-api-app sh -c "sed -i 's/^DB_HOST=.*/DB_HOST=${{ secrets.RDS_HOST }}/' /var/www/html/.env"
-              docker exec laravel-api-app sh -c "sed -i 's/^DB_DATABASE=.*/DB_DATABASE=${{ secrets.RDS_DATABASE }}/' /var/www/html/.env"
-              docker exec laravel-api-app sh -c "sed -i 's/^DB_USERNAME=.*/DB_USERNAME=${{ secrets.RDS_USERNAME }}/' /var/www/html/.env"
-              docker exec laravel-api-app sh -c "sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=${{ secrets.RDS_PASSWORD }}/' /var/www/html/.env"
-            fi
 
             # Verificar que las extensiones PHP para PostgreSQL estén instaladas
             echo "Verificando extensiones PHP requeridas..."
