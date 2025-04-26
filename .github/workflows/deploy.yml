@@ -88,10 +88,23 @@ jobs:
 
       - name: Set up SSH key
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
-          chmod 600 ~/.ssh/ec2_key.pem
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          # Diagnosticar el entorno
+          echo "Current user: $(whoami)"
+          echo "Current directory: $(pwd)"
+          echo "Home directory: $HOME"
+
+          # Usar directorio temporal en lugar de ~/.ssh
+          SSH_DIR="$(pwd)/ssh_temp"
+          mkdir -p $SSH_DIR
+          echo "SSH directory: $SSH_DIR"
+
+          # Configurar clave SSH
+          echo "${{ secrets.EC2_SSH_KEY }}" > $SSH_DIR/ec2_key.pem
+          chmod 600 $SSH_DIR/ec2_key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> $SSH_DIR/known_hosts
+
+          # Verificar archivos creados
+          ls -la $SSH_DIR
 
       - name: Deploy to EC2 with direct SSH
         env:
@@ -107,6 +120,9 @@ jobs:
           RDS_USERNAME: ${{ secrets.RDS_USERNAME }}
           RDS_HOST: ${{ secrets.RDS_HOST }}
         run: |
+          # Definir directorio SSH
+          SSH_DIR="$(pwd)/ssh_temp"
+
           # Crear script de despliegue
           cat > deploy.sh << 'EOSCRIPT'
           #!/bin/bash
@@ -252,5 +268,5 @@ jobs:
 
           # Transferir y ejecutar script en el servidor
           chmod +x deploy.sh
-          scp -i ~/.ssh/ec2_key.pem -o ConnectTimeout=30 deploy.sh ${EC2_USERNAME}@${EC2_HOST}:~/
-          ssh -i ~/.ssh/ec2_key.pem -o ConnectTimeout=30 ${EC2_USERNAME}@${EC2_HOST} "chmod +x ~/deploy.sh && ~/deploy.sh"
+          scp -i $SSH_DIR/ec2_key.pem -o UserKnownHostsFile=$SSH_DIR/known_hosts -o StrictHostKeyChecking=no -o ConnectTimeout=30 deploy.sh ${EC2_USERNAME}@${EC2_HOST}:~/
+          ssh -i $SSH_DIR/ec2_key.pem -o UserKnownHostsFile=$SSH_DIR/known_hosts -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${EC2_USERNAME}@${EC2_HOST} "chmod +x ~/deploy.sh && ~/deploy.sh"
