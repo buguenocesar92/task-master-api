@@ -26,6 +26,13 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . /var/www/html
 
+# Asegurarnos de que el index.php existe y es accesible
+RUN if [ ! -f /var/www/html/public/index.php ]; then \
+    echo "ERROR: index.php no encontrado en public/" && exit 1; \
+    fi && \
+    chmod -R 755 /var/www/html/public && \
+    ls -la /var/www/html/public/
+
 # Set permissions
 RUN mkdir -p /var/www/html/storage/logs \
     /var/www/html/storage/framework/views \

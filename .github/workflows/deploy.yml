@@ -117,7 +117,7 @@ jobs:
             echo "<?php echo 'Hello from Laravel Test File!'; ?>" > ~/app-files/public/test.php
             chmod 755 ~/app-files/public/test.php
 
-            # Reemplazar docker-compose.yml completamente
+            # Reemplazar docker-compose.yml completamente con una versión que no sobrescriba los archivos de Laravel
             cat > ~/docker-compose.yml << EOF
             version: '3.8'
 
@@ -128,9 +128,8 @@ jobs:
                 container_name: laravel-api-app
                 restart: unless-stopped
                 volumes:
-                  - ./app-files/storage:/var/www/html/storage
-                  - ./app-files/bootstrap/cache:/var/www/html/bootstrap/cache
-                  - ./app-files/public:/var/www/html/public
+                  # Solo montamos storage para persistencia de datos, NO sobrescribimos public
+                  - app-storage:/var/www/html/storage
                 networks:
                   - laravel-network
                 depends_on:
@@ -156,7 +155,6 @@ jobs:
                   - "8080:80"
                 volumes:
                   - ./nginx/conf.d:/etc/nginx/conf.d
-                  - ./app-files/public:/var/www/html/public:ro
                 networks:
                   - laravel-network
                 depends_on:
@@ -208,6 +206,8 @@ jobs:
                 driver: local
               redis-data:
                 driver: local
+              app-storage:
+                driver: local
 
             # Networks
             networks:
@@ -242,10 +242,6 @@ jobs:
             }
             EOF
 
-            # Establecer permisos
-            echo "Configurando permisos correctos..."
-            chmod -R 777 ~/app-files
-
             # Iniciar contenedores con la nueva configuración
             docker-compose down
             docker-compose up -d
@@ -254,14 +250,30 @@ jobs:
             echo "Esperando a que los contenedores estén listos..."
             sleep 15
 
-            # Extraer archivos de la aplicación del contenedor al host
-            echo "Copiando archivos de la aplicación del contenedor al host..."
-            docker cp laravel-api-app:/var/www/html/public/. ~/app-files/public/
+            # CRUCIAL: Verificar si index.php existe, y si no, crearlo
+            echo "Verificando archivos críticos de Laravel..."
+            if ! docker exec laravel-api-app test -f /var/www/html/public/index.php; then
+              echo "¡ATENCIÓN! Archivo index.php no encontrado. Creando uno básico..."
+              docker exec laravel-api-app sh -c 'echo "<?php include_once __DIR__.'\''..'\''.'\''/'\''.'\''vendor/autoload.php'\''; $app = require_once __DIR__.'\''..'\''.'\''/'\''.'\''bootstrap/app.php'\''; $kernel = $app->make(Illuminate\\Contracts\\Http\\Kernel::class); $response = $kernel->handle($request = Illuminate\\Http\\Request::capture()); $response->send(); $kernel->terminate($request, $response); ?>" > /var/www/html/public/index.php'
+              docker exec laravel-api-app chmod 755 /var/www/html/public/index.php
+            fi
 
-            # Establecer permisos nuevamente después de la copia
-            chmod -R 777 ~/app-files
+            # Verificar que los archivos críticos existen
+            echo "Contenido del directorio public:"
+            docker exec laravel-api-app ls -la /var/www/html/public/
 
-            # Reiniciar Nginx
+            # Corregir permisos de archivos críticos
+            echo "Configurando permisos correctos..."
+            docker exec laravel-api-app sh -c "chmod -R 755 /var/www/html/public"
+            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage"
+            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/bootstrap/cache"
+
+            # Crear un archivo de prueba PHP para verificar que todo funciona
+            echo "Creando archivo de prueba..."
+            docker exec laravel-api-app sh -c 'echo "<?php echo \"Test from container - setup by GitHub Actions\"; ?>" > /var/www/html/public/test-actions.php'
+            docker exec laravel-api-app chmod 755 /var/www/html/public/test-actions.php
+
+            # Reiniciar Nginx para aplicar todos los cambios
             docker restart laravel-api-nginx
 
             # Verificar que los contenedores estén en ejecución
@@ -279,6 +291,7 @@ jobs:
               docker ps -a
             fi
 
+            # Mensaje de éxito con instrucciones
             echo "Despliegue completado con éxito!"
             echo "Prueba la aplicación en: http://$(curl -s http://checkip.amazonaws.com):8080"
-            echo "Prueba el archivo de test en: http://$(curl -s http://checkip.amazonaws.com):8080/test.php"
+            echo "Prueba el archivo de test en: http://$(curl -s http://checkip.amazonaws.com):8080/test-actions.php"
