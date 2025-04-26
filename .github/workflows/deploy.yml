@@ -278,6 +278,31 @@ jobs:
             # del contenedor app al volumen compartido para que Nginx pueda acceder
             echo "Copiando archivos públicos de Laravel al volumen compartido..."
             docker cp laravel-api-app:/var/www/html/public/. /var/lib/docker/volumes/app-public/_data/
-            docker exec laravel-api-nginx chmod -R 755 /var/www/html/public
+
+            # Corregir permisos para solucionar el 403 Forbidden
+            echo "Configurando permisos correctos..."
+
+            # Asegurar que el directorio del volumen tenga los permisos adecuados
+            sudo chmod -R 755 /var/lib/docker/volumes/app-public/_data/
+            sudo chown -R 1000:1000 /var/lib/docker/volumes/app-public/_data/
+
+            # Corregir permisos dentro del contenedor PHP
+            docker exec laravel-api-app sh -c "chmod -R 755 /var/www/html/public"
+            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage"
+            docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/bootstrap/cache"
+
+            # Verificar que el index.php existe en la carpeta pública
+            echo "Verificando archivos en la carpeta pública..."
+            docker exec laravel-api-app ls -la /var/www/html/public/
+
+            # Crear un archivo PHP simple para probar
+            echo "Creando archivo de prueba..."
+            docker exec laravel-api-app sh -c 'echo "<?php echo \"Hello from Laravel\"; ?>" > /var/www/html/public/test.php'
+            docker exec laravel-api-app chmod 755 /var/www/html/public/test.php
+
+            # Reiniciar Nginx para aplicar los cambios
+            docker restart laravel-api-nginx
 
             echo "Despliegue completado con éxito!"
+            echo "Prueba la aplicación en: http://[IP-del-servidor]:8080"
+            echo "Prueba el archivo de test en: http://[IP-del-servidor]:8080/test.php"
