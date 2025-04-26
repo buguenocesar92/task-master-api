@@ -79,6 +79,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Copy docker-compose file to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
@@ -86,8 +95,11 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Configurar AWS CLI con credenciales temporales o usar rol IAM
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REPOSITORY }}
             docker pull ${{ secrets.AWS_ECR_REPOSITORY }}:latest
+
+            # Usar los docker-compose.yml que copiamos
             docker-compose down
             docker-compose up -d
 
