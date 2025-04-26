@@ -77,6 +77,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check Required Secrets
+        run: |
+          if [[ -z "${{ secrets.APP_KEY }}" ]]; then
+            echo "⚠️ ADVERTENCIA: APP_KEY no está configurada como secreto de GitHub."
+            echo "Es altamente recomendable configurar APP_KEY como un secreto de GitHub para mantener la consistencia entre despliegues."
+            echo "Esto es especialmente importante para mantener la integridad de los datos encriptados en la aplicación."
+            echo "Una APP_KEY temporal será generada para este despliegue, pero debe ser reemplazada por una permanente."
+            echo "Para generar una clave, ejecuta: php artisan key:generate --show"
+            echo ""
+          fi
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
@@ -97,12 +108,16 @@ jobs:
             REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY }}"
             REPO_URL="${ECR_URL}/${REPO_NAME}"
 
-            # Generar una clave de aplicación si no existe
-            APP_KEY="${{ secrets.APP_KEY }}"
-            if [ -z "$APP_KEY" ]; then
+            # Configurar APP_KEY (preferiblemente desde secretos)
+            if [[ -n "${{ secrets.APP_KEY }}" ]]; then
+              # Usar la APP_KEY configurada en los secretos de GitHub
+              APP_KEY="${{ secrets.APP_KEY }}"
+              echo "Usando APP_KEY configurada en secretos de GitHub"
+            else
+              # Generar una APP_KEY temporal solo si no está configurada en los secretos
               APP_KEY="base64:$(openssl rand -base64 32)"
-              echo "Generada nueva APP_KEY: $APP_KEY"
-              echo "Guárdala en los secretos de GitHub como APP_KEY"
+              echo "⚠️ ADVERTENCIA: Generada APP_KEY temporal: $APP_KEY"
+              echo "⚠️ IMPORTANTE: Configura esta clave como secreto APP_KEY en GitHub para futuros despliegues"
             fi
 
             # Login a ECR
@@ -244,7 +259,7 @@ jobs:
             EOF
 
             # Iniciar contenedores con la nueva configuración
-            docker-compose down
+            docker-compose down --remove-orphans
             docker-compose up -d
 
             # Esperar a que los contenedores estén listos
@@ -256,10 +271,42 @@ jobs:
             docker exec laravel-api-app sh -c "chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache"
             docker exec laravel-api-app sh -c "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache"
 
+            # Crear archivo .env para asegurar la correcta configuración
+            echo "Creando archivo .env con configuración para la base de datos task-master..."
+            docker exec laravel-api-app sh -c 'cat > /var/www/html/.env << "EOF"
+            APP_NAME=Laravel
+            APP_ENV=production
+            APP_KEY='${APP_KEY}'
+            APP_DEBUG=false
+            APP_URL=http://localhost:8080
+
+            LOG_CHANNEL=stack
+            LOG_LEVEL=debug
+
+            DB_CONNECTION=pgsql
+            DB_HOST=postgres
+            DB_PORT=5432
+            DB_DATABASE=task-master
+            DB_USERNAME=postgres
+            DB_PASSWORD=9cmwEUUDLe42V5y4
+
+            BROADCAST_DRIVER=log
+            CACHE_DRIVER=file
+            FILESYSTEM_DISK=local
+            QUEUE_CONNECTION=sync
+            SESSION_DRIVER=file
+            SESSION_LIFETIME=120
+
+            REDIS_HOST=redis
+            REDIS_PASSWORD=null
+            REDIS_PORT=6379
+            EOF'
+
             # Verificar que las extensiones PHP para PostgreSQL estén instaladas
             echo "Verificando extensiones PHP requeridas..."
             if ! docker exec laravel-api-app php -m | grep -q pdo_pgsql; then
-              echo "¡ALERTA! La extensión pdo_pgsql no está instalada. Verificar Dockerfile para asegurar que incluye esta extensión."
+              echo "¡ALERTA! La extensión pdo_pgsql no está instalada. Instalando..."
+              docker exec laravel-api-app sh -c "apt-get update && apt-get install -y libpq-dev && docker-php-ext-install pdo_pgsql"
             fi
 
             # Limpiar cachés de Laravel para asegurar la carga correcta
@@ -317,7 +364,7 @@ jobs:
             docker restart laravel-api-nginx
 
             # Crear tabla de migraciones si no existe
-            echo "Creando tabla de migraciones..."
+            echo "Creando tabla de migraciones en la base de datos task-master..."
             docker exec -w /var/www/html laravel-api-app sh -c 'php artisan migrate:install --no-interaction'
 
             # Verificar que los contenedores estén en ejecución
@@ -325,8 +372,12 @@ jobs:
             docker ps
 
             # Ejecutar migraciones
-            echo "Ejecutando migraciones..."
+            echo "Ejecutando migraciones en task-master..."
             docker exec -w /var/www/html laravel-api-app php artisan migrate --force
+
+            # Verificar la conexión a la base de datos
+            echo "Verificando conexión a la base de datos task-master..."
+            docker exec -it laravel-api-app php -r "try { \$pdo = new PDO('pgsql:host=postgres;dbname=task-master', 'postgres', '9cmwEUUDLe42V5y4'); echo 'Conexión exitosa a PostgreSQL'; } catch(PDOException \$e) { echo 'Error de conexión: ' . \$e->getMessage(); }"
 
             # Regenerar el caché de configuración después de todo
             echo "Regenerando cachés..."
