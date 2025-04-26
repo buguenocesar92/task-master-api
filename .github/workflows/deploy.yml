@@ -160,7 +160,7 @@ jobs:
                 environment:
                   # Variables de entorno de la aplicación (pasadas directamente en lugar de .env)
                   APP_NAME: "Laravel"
-                  APP_ENV: "production"
+                  APP_ENV: "local"
                   APP_KEY: "${APP_KEY}"
                   APP_DEBUG: "false"
                   APP_URL: "http://localhost:8080"
