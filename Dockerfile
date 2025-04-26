@@ -50,7 +50,7 @@ RUN mkdir -p storage/framework/{sessions,views,cache} && \
 
 # Set up PHP-FPM configuration
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/php/custom.ini /usr/local/etc/php/conf.d/custom.ini
 
 # Expose port 9000 for PHP-FPM
 EXPOSE 9000

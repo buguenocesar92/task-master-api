@@ -17,6 +17,9 @@ Este documento describe el proceso para desplegar la aplicación en AWS utilizan
    - `AWS_SECRET_ACCESS_KEY`: Tu clave secreta de acceso de AWS
    - `AWS_REGION`: La región donde desplegarás (ej. us-east-1)
    - `AWS_ECR_REPOSITORY`: Nombre del repositorio ECR
+   - `EC2_HOST`: Dirección IP o DNS de tu instancia EC2
+   - `EC2_USERNAME`: Usuario para conectarse a EC2 (normalmente ec2-user)
+   - `EC2_SSH_KEY`: Clave SSH privada para conectarse a la instancia EC2
    - `RDS_HOST`: Endpoint de tu instancia RDS
    - `RDS_DATABASE`: Nombre de la base de datos
    - `RDS_USERNAME`: Usuario de la base de datos
@@ -24,28 +27,24 @@ Este documento describe el proceso para desplegar la aplicación en AWS utilizan
 
 ## Infraestructura AWS
 
-### Creación de Recursos con Terraform
+### Creación de Recursos en AWS
 
-1. Navega al directorio `infrastructure/`
-2. Configura las variables en `terraform.tfvars` (basado en el ejemplo)
-3. Inicializa Terraform:
-   ```bash
-   terraform init
-   ```
-4. Planifica la infraestructura:
-   ```bash
-   terraform plan -out=tfplan
-   ```
-5. Aplica la configuración:
-   ```bash
-   terraform apply tfplan
-   ```
+1. Accede a la consola de AWS en https://aws.amazon.com/console/
+2. Crea los siguientes recursos manualmente desde la consola:
+   - VPC con subredes públicas y privadas
+   - Instancia EC2 (t2.micro)
+   - Base de datos RDS MySQL
+   - Repositorio ECR para imágenes Docker
+   - Bucket S3 para archivos estáticos
+3. Configura los grupos de seguridad para permitir comunicación entre los servicios
+4. Establece roles y políticas IAM necesarios para el despliegue
 
 ### Recursos Creados
 
 - VPC con subredes públicas y privadas
 - Instancia EC2 (t2.micro)
 - Base de datos RDS MySQL
+- Repositorio ECR para imágenes Docker
 - Bucket S3 para archivos estáticos
 - Roles y políticas IAM necesarios
 - Grupo de seguridad configurado
@@ -71,12 +70,17 @@ Si necesitas hacer un despliegue manual, sigue estos pasos:
 
 1. Conéctate a la instancia EC2:
    ```bash
-   ssh -i "tu-clave.pem" ec2-user@tu-instancia-ec2.aws.com
+   ssh -i "tu-clave.pem" ec2-user@tu-instancia-ec2.amazonaws.com
    ```
 
-2. Actualiza la imagen del contenedor:
+2. Inicia sesión en ECR:
    ```bash
-   docker pull $AWS_ECR_REPOSITORY:latest
+   aws ecr get-login-password --region tu-region | docker login --username AWS --password-stdin tu-cuenta.dkr.ecr.tu-region.amazonaws.com
+   ```
+
+3. Actualiza la imagen del contenedor:
+   ```bash
+   docker pull tu-cuenta.dkr.ecr.tu-region.amazonaws.com/tu-repositorio:latest
    docker-compose down
    docker-compose up -d
    ```
@@ -85,12 +89,22 @@ Si necesitas hacer un despliegue manual, sigue estos pasos:
 
 1. La aplicación estará disponible en:
    ```
-   http://tu-instancia-ec2.aws.com
+   http://tu-instancia-ec2.amazonaws.com
    ```
 
 2. Verifica los logs:
    ```bash
    docker-compose logs -f app
+   ```
+
+3. Comprueba el estado de los contenedores:
+   ```bash
+   docker ps
+   ```
+
+4. Verifica la conexión a la base de datos:
+   ```bash
+   docker-compose exec app php artisan migrate:status
    ```
 
 ## Troubleshooting

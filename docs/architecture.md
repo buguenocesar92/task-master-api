@@ -16,6 +16,7 @@
 - **EC2**: Instancia para alojar la aplicación Laravel en contenedor Docker
 - **RDS**: Base de datos MySQL para almacenamiento persistente
 - **S3**: Almacenamiento de archivos estáticos y backups
+- **ECR**: Registro de contenedores para almacenar imágenes Docker
 - **CloudWatch**: Monitoreo de la infraestructura y aplicación
 - **VPC**: Red virtual privada para separar y proteger los recursos
 
