@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # PHP Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-api-app-dev
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html    # Montar todo el directorio para desarrollo en tiempo real
+    networks:
+      - laravel-network
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      APP_NAME: "Laravel"
+      APP_ENV: "local"
+      APP_DEBUG: "true"
+      APP_URL: "http://localhost:8080"
+
+      DB_CONNECTION: "pgsql"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_DATABASE: "task_master_dev"
+      DB_USERNAME: "postgres"
+      DB_PASSWORD: "postgres"
+
+      REDIS_HOST: "redis"
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: laravel-api-nginx-dev
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/dev:/etc/nginx/conf.d   # Configuración específica para desarrollo
+      - .:/var/www/html                 # Acceso a todo el proyecto
+    networks:
+      - laravel-network
+    depends_on:
+      - app
+
+  # PostgreSQL para desarrollo local
+  postgres:
+    image: postgres:14-alpine
+    container_name: laravel-api-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: task_master_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"    # Exponer el puerto para acceder con pgAdmin
+    networks:
+      - laravel-network
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: laravel-api-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"    # Exponer el puerto para depuración
+    networks:
+      - laravel-network
+
+  # PgAdmin para gestionar la base de datos
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: laravel-api-pgadmin-dev
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8082:80"
+    networks:
+      - laravel-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  laravel-network:
+    driver: bridge
