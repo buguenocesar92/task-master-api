@@ -13,14 +13,16 @@ class AuthController extends Controller
 {
     /**
      * Register a new user
+     *
+     * @param  RegisterRequest  $request  Request con datos de registro validados
      */
     public function register(RegisterRequest $request): JsonResponse
     {
         // Crear el usuario
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $request->validated('name'),
+            'email' => $request->validated('email'),
+            'password' => Hash::make($request->validated('password')),
         ]);
 
         // Crear token usando Sanctum

@@ -9,7 +9,8 @@ use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use RefreshDatabase;
+    use WithFaker;
 
     /**
      * Test user can register with valid data
@@ -77,6 +78,7 @@ class RegistrationTest extends TestCase
     public function test_registration_requires_unique_email(): void
     {
         // Create a user
+        /** @var User $user */
         $user = User::factory()->create();
 
         $userData = [
