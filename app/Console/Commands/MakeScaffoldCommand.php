@@ -141,7 +141,38 @@ class MakeScaffoldCommand extends Command
                 'name' => $resourceClass,
             ]);
             $resourcePath = app_path("Http/Resources/{$resourceClass}.php");
-            $this->info("API Resource {$resourceClass} generado exitosamente.");
+
+            // Personalizar el API Resource si se generó correctamente
+            if (file_exists($resourcePath)) {
+                $resourceContent = file_get_contents($resourcePath);
+
+                // Crear un API Resource básico que devuelva todos los atributos del modelo
+                $resourceContent = <<<EOT
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class {$resourceClass} extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request \$request): array
+    {
+        return parent::toArray(\$request);
+    }
+}
+EOT;
+                file_put_contents($resourcePath, $resourceContent);
+                $this->info("API Resource {$resourceClass} generado y personalizado exitosamente.");
+            } else {
+                $this->info("API Resource {$resourceClass} generado exitosamente.");
+            }
         }
 
         $controllerPath = app_path("Http/Controllers/{$controllerName}.php");
@@ -1186,8 +1217,24 @@ EOT;
         // Eliminar la última nueva línea si existe
         $assertContent = rtrim($assertContent);
 
-        $useApiResource = $hasApiResources ? "\n    use RefreshDatabase, WithFaker;" : "\n    use RefreshDatabase, WithFaker;";
         $parameter = Str::snake($name);
+
+        // En el caso de API Resource Collection necesitamos un enfoque diferente
+        $indexAssertCount = $hasApiResources
+            ? "\$response->assertJsonCount(3, 'data');"
+            : "\$response->assertJsonCount(3);";
+
+        $showAssertJson = "\$response->assertJson([\n            'id' => \${$name}->id,\n        ]);";
+
+        // Solo para API Resources, necesitamos ajustar la forma en que accedemos a los datos
+        $storeAssertJson = '';
+        if ($hasApiResources) {
+            foreach ($assertionFields as $field) {
+                $storeAssertJson .= "        \$response->assertJsonPath('{$field}', \$data['{$field}']);\n";
+            }
+        } else {
+            $storeAssertJson = $assertContent;
+        }
 
         return <<<EOT
 <?php
@@ -1215,6 +1262,9 @@ class {$name}ControllerTest extends TestCase
         // Asegurarse de que las migraciones estén ejecutadas
         \$this->artisan('migrate');
 
+        // Registrar binding para repositorio
+        app()->bind(\App\Repositories\Contracts\\{$name}RepositoryInterface::class, \App\Repositories\\{$name}Repository::class);
+
         // Registrar rutas directamente para las pruebas
         Route::get('/{$prefix}', [{$name}Controller::class, 'index'])->name('{$prefix}.index');
         Route::post('/{$prefix}', [{$name}Controller::class, 'store'])->name('{$prefix}.store');
@@ -1239,7 +1289,7 @@ class {$name}ControllerTest extends TestCase
 
         // Verificar respuesta
         \$response->assertStatus(200);
-        \$response->assertJsonCount(3);
+        {$indexAssertCount}
     }
 
     /**
@@ -1255,7 +1305,7 @@ class {$name}ControllerTest extends TestCase
 
         // Verificar respuesta
         \$response->assertStatus(201);
-{$assertContent}
+{$storeAssertJson}
 
         // Verificar que existe en la base de datos
         \$this->assertDatabaseHas('{$prefix}', \$data);
@@ -1275,9 +1325,7 @@ class {$name}ControllerTest extends TestCase
 
         // Verificar respuesta
         \$response->assertStatus(200);
-        \$response->assertJson([
-            'id' => \${$name}->id,
-        ]);
+        {$showAssertJson}
     }
 
     /**
