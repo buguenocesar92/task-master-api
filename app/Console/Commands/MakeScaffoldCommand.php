@@ -55,7 +55,7 @@ class MakeScaffoldCommand extends Command
 
         // 1. Crear el modelo (con o sin migración según la opción).
         $modelOptions = ['name' => $name];
-        if (!$noMigration) {
+        if (! $noMigration) {
             $modelOptions['--migration'] = true;
         }
         if ($withFactory) {
@@ -68,7 +68,7 @@ class MakeScaffoldCommand extends Command
         $this->call('make:model', $modelOptions);
 
         // 1.1 Actualizar la migración con campos personalizados si se ha generado.
-        if (!$noMigration) {
+        if (! $noMigration) {
             $tableName = Str::plural(Str::snake($name));
             $migrationFiles = glob(database_path("migrations/*_create_{$tableName}_table.php"));
 
@@ -95,7 +95,7 @@ class MakeScaffoldCommand extends Command
 
         // 1.2 Actualizar el modelo para agregar la propiedad fillable y relaciones.
         $modelPath = app_path("Models/{$name}.php");
-        if (!file_exists($modelPath)) {
+        if (! file_exists($modelPath)) {
             // En algunos proyectos el modelo se crea en la raíz de app/
             $modelPath = app_path("{$name}.php");
         }
@@ -105,23 +105,23 @@ class MakeScaffoldCommand extends Command
 
             // Generar array de campos fillable
             $fillableFields = array_keys($fields);
-            $fillableString = "'" . implode("', '", $fillableFields) . "'";
+            $fillableString = "'".implode("', '", $fillableFields)."'";
 
             if (strpos($modelContent, 'protected $fillable') === false) {
                 $modelContent = preg_replace(
-                    '/(class\s+' . $name . '\s+extends\s+\S+\s*\{)/',
+                    '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
                     "$1\n    protected \$fillable = [{$fillableString}];",
                     $modelContent
                 );
 
                 // Añadir métodos de relaciones si existen
-                if (!empty($relations)) {
+                if (! empty($relations)) {
                     $relationsCode = $this->generateModelRelationsCode($relations);
-                    $modelContent = str_replace('}', $relationsCode . "\n}", $modelContent);
+                    $modelContent = str_replace('}', $relationsCode."\n}", $modelContent);
                 }
 
                 file_put_contents($modelPath, $modelContent);
-                $this->info("Modelo {$name} actualizado con fillable" . (!empty($relations) ? " y relaciones" : "") . ".");
+                $this->info("Modelo {$name} actualizado con fillable".(! empty($relations) ? ' y relaciones' : '').'.');
             }
         } else {
             $this->error("No se encontró el modelo {$name}.");
@@ -181,7 +181,7 @@ EOT;
         $imports = [
             "use App\Services\\{$name}Service;",
             "use App\Http\Requests\\{$name}\\Store{$name}Request;",
-            "use App\Http\Requests\\{$name}\\Update{$name}Request;"
+            "use App\Http\Requests\\{$name}\\Update{$name}Request;",
         ];
 
         if ($withApiResource) {
@@ -358,17 +358,18 @@ EOT;
         $repositoryPath = app_path("Repositories/{$name}Repository.php");
         $servicePath = app_path("Services/{$name}Service.php");
 
-        if (!is_dir(app_path('Repositories/Contracts'))) {
+        if (! is_dir(app_path('Repositories/Contracts'))) {
             mkdir(app_path('Repositories/Contracts'), 0755, true);
         }
-        if (!is_dir(app_path('Repositories'))) {
+        if (! is_dir(app_path('Repositories'))) {
             mkdir(app_path('Repositories'), 0755, true);
         }
-        if (!is_dir(app_path('Services'))) {
+        if (! is_dir(app_path('Services'))) {
             mkdir(app_path('Services'), 0755, true);
         }
         if (file_exists($interfacePath) || file_exists($repositoryPath) || file_exists($servicePath)) {
             $this->error('Algunos de los archivos de repositorio/servicio ya existen. Abortando la generación.');
+
             return;
         }
 
@@ -475,7 +476,7 @@ EOT;
         $this->info("Scaffold generado para la entidad {$name} exitosamente.");
 
         // 4. Actualizar AppServiceProvider para registrar la vinculación.
-        $providerPath = app_path("Providers/AppServiceProvider.php");
+        $providerPath = app_path('Providers/AppServiceProvider.php');
         $providerContent = file_get_contents($providerPath);
         $binding = "\$this->app->bind(\\App\\Repositories\\Contracts\\{$name}RepositoryInterface::class, \\App\\Repositories\\{$name}Repository::class);";
 
@@ -488,7 +489,7 @@ EOT;
                     "$1\n        {$binding}\n",
                     $providerContent
                 );
-            } else if (preg_match('/public function register\(\): void.*?{/s', $providerContent)) {
+            } elseif (preg_match('/public function register\(\): void.*?{/s', $providerContent)) {
                 // Laravel 9+ usa register(): void
                 $providerContent = preg_replace(
                     '/(public function register\(\): void.*?{)/s',
@@ -503,14 +504,14 @@ EOT;
             }
 
             file_put_contents($providerPath, $providerContent);
-            $this->info("Se ha registrado la vinculación en AppServiceProvider.");
+            $this->info('Se ha registrado la vinculación en AppServiceProvider.');
         } else {
-            $this->info("La vinculación ya existe en AppServiceProvider.");
+            $this->info('La vinculación ya existe en AppServiceProvider.');
         }
 
         // 5. Generar el archivo de rutas genérico en routes/api y actualizar routes/api.php.
         $apiDir = base_path('routes/api');
-        if (!is_dir($apiDir)) {
+        if (! is_dir($apiDir)) {
             mkdir($apiDir, 0755, true);
         }
 
@@ -532,7 +533,7 @@ Route::group(['prefix' => '{$prefix}'], function () {
 EOT;
 
         // Opción 1: Crear un archivo de rutas separado
-        $routesFilePath = $apiDir . '/' . $prefix . '.php';
+        $routesFilePath = $apiDir.'/'.$prefix.'.php';
 
         if (file_exists($routesFilePath)) {
             $this->error("El archivo de rutas {$routesFilePath} ya existe. No se sobrescribirá.");
@@ -546,7 +547,7 @@ EOT;
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
             if (strpos($mainRoutesContent, $requireLine) === false) {
-                file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
+                file_put_contents($mainRoutesPath, "\n".$requireLine, FILE_APPEND);
                 $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
             }
         }
@@ -572,12 +573,12 @@ EOT;
         // (priorizar este método para mayor compatibilidad con los tests)
         if (strpos($mainRoutesContent, "// Rutas para {$name}") === false) {
             file_put_contents($mainRoutesPath, $inlineRoutesContent, FILE_APPEND);
-            $this->info("Se han añadido rutas directamente en api.php para mayor compatibilidad.");
+            $this->info('Se han añadido rutas directamente en api.php para mayor compatibilidad.');
         }
 
         // 6. Crear ApiFormRequest si no existe.
-        $apiFormRequestPath = app_path("Http/Requests/ApiFormRequest.php");
-        if (!file_exists($apiFormRequestPath)) {
+        $apiFormRequestPath = app_path('Http/Requests/ApiFormRequest.php');
+        if (! file_exists($apiFormRequestPath)) {
             $apiFormRequestContent = <<<EOT
 <?php
 
@@ -616,18 +617,18 @@ abstract class ApiFormRequest extends FormRequest
 }
 EOT;
             file_put_contents($apiFormRequestPath, $apiFormRequestContent);
-            $this->info("ApiFormRequest creado en app/Http/Requests/ApiFormRequest.php");
+            $this->info('ApiFormRequest creado en app/Http/Requests/ApiFormRequest.php');
         } else {
-            $this->info("ApiFormRequest ya existe.");
+            $this->info('ApiFormRequest ya existe.');
         }
 
         // 7. Crear las requests Store y Update para la entidad basadas en los campos.
         $requestDir = app_path("Http/Requests/{$name}");
-        if (!is_dir($requestDir)) {
+        if (! is_dir($requestDir)) {
             mkdir($requestDir, 0755, true);
         }
-        $storeRequestPath = $requestDir . "/Store{$name}Request.php";
-        $updateRequestPath = $requestDir . "/Update{$name}Request.php";
+        $storeRequestPath = $requestDir."/Store{$name}Request.php";
+        $updateRequestPath = $requestDir."/Update{$name}Request.php";
 
         if (file_exists($storeRequestPath) || file_exists($updateRequestPath)) {
             $this->error("Las requests para {$name} ya existen.");
@@ -706,7 +707,7 @@ EOT;
         }
 
         // 8. Generar factory si la opción está activa y no se creó con el modelo
-        if ($withFactory && !file_exists(database_path("factories/{$name}Factory.php"))) {
+        if ($withFactory && ! file_exists(database_path("factories/{$name}Factory.php"))) {
             $this->call('make:factory', [
                 'name' => "{$name}Factory",
                 '--model' => "\\App\\Models\\{$name}",
@@ -745,7 +746,7 @@ EOT;
                 // Añadir use para la clase de modelo
                 if (strpos($seederContent, "use App\\Models\\{$name};") === false) {
                     $seederContent = str_replace(
-                        "use Illuminate\\Database\\Seeder;",
+                        'use Illuminate\\Database\\Seeder;',
                         "use Illuminate\\Database\\Seeder;\nuse App\\Models\\{$name};",
                         $seederContent
                     );
@@ -772,8 +773,7 @@ EOT;
     /**
      * Analiza la cadena de campos y devuelve un array estructurado.
      *
-     * @param string|null $fieldsString Ejemplo: 'nombre:string,edad:integer'
-     * @return array
+     * @param  string|null  $fieldsString  Ejemplo: 'nombre:string,edad:integer'
      */
     protected function parseFields(?string $fieldsString): array
     {
@@ -782,7 +782,7 @@ EOT;
             return [
                 'name' => ['type' => 'string', 'nullable' => false, 'default' => null],
                 'description' => ['type' => 'text', 'nullable' => true, 'default' => null],
-                'status' => ['type' => 'boolean', 'nullable' => false, 'default' => true]
+                'status' => ['type' => 'boolean', 'nullable' => false, 'default' => true],
             ];
         }
 
@@ -817,7 +817,7 @@ EOT;
             $fields[$fieldName] = [
                 'type' => $fieldType,
                 'nullable' => $nullable,
-                'default' => $default
+                'default' => $default,
             ];
         }
 
@@ -827,8 +827,7 @@ EOT;
     /**
      * Analiza la cadena de relaciones y devuelve un array estructurado.
      *
-     * @param string|null $relationsString Ejemplo: 'belongsTo:User,hasMany:Comment'
-     * @return array
+     * @param  string|null  $relationsString  Ejemplo: 'belongsTo:User,hasMany:Comment'
      */
     protected function parseRelations(?string $relationsString): array
     {
@@ -851,7 +850,7 @@ EOT;
 
             $relations[] = [
                 'type' => $relationType,
-                'model' => $relatedModel
+                'model' => $relatedModel,
             ];
         }
 
@@ -860,9 +859,6 @@ EOT;
 
     /**
      * Genera el código para los campos de migración.
-     *
-     * @param array $fields
-     * @return string
      */
     protected function generateMigrationFieldsCode(array $fields): string
     {
@@ -887,16 +883,16 @@ EOT;
                 } elseif (in_array($field['type'], ['float', 'double', 'decimal'])) {
                     $default = (float) $default;
                 } elseif ($field['type'] === 'json') {
-                    $default = "'" . json_encode($default) . "'";
+                    $default = "'".json_encode($default)."'";
                 } elseif (in_array($field['type'], ['string', 'text'])) {
-                    $default = "'" . $default . "'";
+                    $default = "'".$default."'";
                 }
 
                 $line .= "->default({$default})";
             }
 
             $line .= ';';
-            $code .= $line . "\n";
+            $code .= $line."\n";
         }
 
         return $code;
@@ -904,9 +900,6 @@ EOT;
 
     /**
      * Genera el código para las relaciones del modelo.
-     *
-     * @param array $relations
-     * @return string
      */
     protected function generateModelRelationsCode(array $relations): string
     {
@@ -955,9 +948,7 @@ EOT;
     /**
      * Genera las reglas de validación para los campos.
      *
-     * @param array $fields
-     * @param bool $isUpdate Si es para actualización (sometimes)
-     * @return string
+     * @param  bool  $isUpdate  Si es para actualización (sometimes)
      */
     protected function generateValidationRules(array $fields, bool $isUpdate = false): string
     {
@@ -973,7 +964,7 @@ EOT;
             }
 
             // Regla required a menos que sea nullable
-            if (!$field['nullable']) {
+            if (! $field['nullable']) {
                 $fieldRules[] = 'required';
             } else {
                 $fieldRules[] = 'nullable';
@@ -1020,7 +1011,7 @@ EOT;
                     break;
             }
 
-            $rules[] = "{$indent}'{$name}' => '" . implode('|', $fieldRules) . "',";
+            $rules[] = "{$indent}'{$name}' => '".implode('|', $fieldRules)."',";
         }
 
         return implode("\n", $rules);
@@ -1028,9 +1019,6 @@ EOT;
 
     /**
      * Genera los campos para el factory.
-     *
-     * @param array $fields
-     * @return string
      */
     protected function generateFactoryFields(array $fields): string
     {
@@ -1047,10 +1035,6 @@ EOT;
 
     /**
      * Obtiene el método de faker apropiado para el tipo de campo.
-     *
-     * @param string $fieldName
-     * @param string $fieldType
-     * @return string
      */
     protected function getFakerMethodForFieldType(string $fieldName, string $fieldType): string
     {
@@ -1126,23 +1110,19 @@ EOT;
 
     /**
      * Genera los tests para la entidad.
-     *
-     * @param string $name
-     * @param string $prefix
-     * @param array $fields
      */
     protected function generateTests(string $name, string $prefix, array $fields)
     {
         // Crear directorio de tests si no existe
         $testsDir = base_path('tests/Feature');
-        if (!is_dir($testsDir)) {
+        if (! is_dir($testsDir)) {
             mkdir($testsDir, 0755, true);
         }
 
         // Test para el controlador
-        $controllerTestPath = $testsDir . "/{$name}ControllerTest.php";
+        $controllerTestPath = $testsDir."/{$name}ControllerTest.php";
 
-        if (!file_exists($controllerTestPath)) {
+        if (! file_exists($controllerTestPath)) {
             $controllerTestContent = $this->generateControllerTest($name, $prefix, $fields);
             file_put_contents($controllerTestPath, $controllerTestContent);
             $this->info("Test para controlador generado en tests/Feature/{$name}ControllerTest.php");
@@ -1150,22 +1130,22 @@ EOT;
 
         // Test para el servicio
         $testsDir = base_path('tests/Unit');
-        if (!is_dir($testsDir)) {
+        if (! is_dir($testsDir)) {
             mkdir($testsDir, 0755, true);
         }
 
-        $serviceTestPath = $testsDir . "/{$name}ServiceTest.php";
+        $serviceTestPath = $testsDir."/{$name}ServiceTest.php";
 
-        if (!file_exists($serviceTestPath)) {
+        if (! file_exists($serviceTestPath)) {
             $serviceTestContent = $this->generateServiceTest($name, $fields);
             file_put_contents($serviceTestPath, $serviceTestContent);
             $this->info("Test para servicio generado en tests/Unit/{$name}ServiceTest.php");
         }
 
         // Test para el repositorio
-        $repositoryTestPath = $testsDir . "/{$name}RepositoryTest.php";
+        $repositoryTestPath = $testsDir."/{$name}RepositoryTest.php";
 
-        if (!file_exists($repositoryTestPath)) {
+        if (! file_exists($repositoryTestPath)) {
             $repositoryTestContent = $this->generateRepositoryTest($name, $fields);
             file_put_contents($repositoryTestPath, $repositoryTestContent);
             $this->info("Test para repositorio generado en tests/Unit/{$name}RepositoryTest.php");
@@ -1174,11 +1154,6 @@ EOT;
 
     /**
      * Genera el contenido del test para el controlador.
-     *
-     * @param string $name
-     * @param string $prefix
-     * @param array $fields
-     * @return string
      */
     protected function generateControllerTest(string $name, string $prefix, array $fields): string
     {
@@ -1369,10 +1344,6 @@ EOT;
 
     /**
      * Genera el contenido del test para el servicio.
-     *
-     * @param string $name
-     * @param array $fields
-     * @return string
      */
     protected function generateServiceTest(string $name, array $fields): string
     {
@@ -1511,10 +1482,6 @@ EOT;
 
     /**
      * Genera el contenido del test para el repositorio.
-     *
-     * @param string $name
-     * @param array $fields
-     * @return string
      */
     protected function generateRepositoryTest(string $name, array $fields): string
     {
@@ -1651,10 +1618,6 @@ EOT;
 
     /**
      * Genera datos de prueba para los tests
-     *
-     * @param array $fields
-     * @param bool $isUpdate
-     * @return string
      */
     protected function generateTestData(array $fields, bool $isUpdate = false): string
     {
@@ -1669,23 +1632,18 @@ EOT;
             $value = $this->getTestValueForType($field['type'], $field['name'] ?? $fieldName, $isUpdate);
 
             // Agregar el valor solo si no es nulo o si el campo no puede ser nulo
-            if ($value !== null || (isset($field['nullable']) && !$field['nullable'])) {
+            if ($value !== null || (isset($field['nullable']) && ! $field['nullable'])) {
                 $testData[] = "'$fieldName' => $value";
             }
         }
 
         return empty($testData)
             ? '[]'
-            : "[\n            " . implode(",\n            ", $testData) . "\n        ]";
+            : "[\n            ".implode(",\n            ", $testData)."\n        ]";
     }
 
     /**
      * Obtiene un valor de prueba según el tipo de campo
-     *
-     * @param string $type
-     * @param string $fieldName
-     * @param bool $isUpdate
-     * @return string|null
      */
     protected function getTestValueForType(string $type, string $fieldName, bool $isUpdate = false): ?string
     {
@@ -1695,25 +1653,25 @@ EOT;
             case 'string':
                 // Intentar detectar algunos campos comunes y generar valores apropiados
                 if (strpos($fieldName, 'email') !== false) {
-                    return "'$prefix" . "test@example.com'";
+                    return "'$prefix"."test@example.com'";
                 } elseif (strpos($fieldName, 'name') !== false || strpos($fieldName, 'nombre') !== false) {
-                    return "'$prefix" . "Test Name'";
+                    return "'$prefix"."Test Name'";
                 } elseif (strpos($fieldName, 'password') !== false || strpos($fieldName, 'contraseña') !== false) {
                     return "bcrypt('password')";
                 } elseif (strpos($fieldName, 'description') !== false || strpos($fieldName, 'descripcion') !== false) {
-                    return "'$prefix" . "Test Description'";
+                    return "'$prefix"."Test Description'";
                 } elseif (strpos($fieldName, 'address') !== false || strpos($fieldName, 'direccion') !== false) {
-                    return "'$prefix" . "123 Test Street'";
+                    return "'$prefix"."123 Test Street'";
                 } elseif (strpos($fieldName, 'phone') !== false || strpos($fieldName, 'telefono') !== false) {
-                    return "'555-" . rand(1000, 9999) . "'";
+                    return "'555-".rand(1000, 9999)."'";
                 } else {
-                    return "'$prefix" . "test_" . $fieldName . "'";
+                    return "'$prefix".'test_'.$fieldName."'";
                 }
 
             case 'text':
             case 'longtext':
             case 'mediumtext':
-                return "'$prefix" . "This is a test text for " . $fieldName . "'";
+                return "'$prefix".'This is a test text for '.$fieldName."'";
 
             case 'integer':
             case 'biginteger':
@@ -1723,46 +1681,47 @@ EOT;
             case 'bigint':
             case 'smallint':
             case 'mediumint':
-                return $isUpdate ? rand(1000, 9999) : rand(100, 999);
+                return (string)($isUpdate ? rand(1000, 9999) : rand(100, 999));
 
             case 'decimal':
             case 'double':
             case 'float':
-                return $isUpdate ? (rand(1000, 9999) / 100) : (rand(100, 999) / 100);
+                return (string)($isUpdate ? (rand(1000, 9999) / 100) : (rand(100, 999) / 100));
 
             case 'boolean':
             case 'bool':
                 return $isUpdate ? 'false' : 'true';
 
             case 'date':
-                return "'" . date('Y-m-d', strtotime(($isUpdate ? '+1 week' : 'now'))) . "'";
+                return "'".date('Y-m-d', strtotime(($isUpdate ? '+1 week' : 'now')))."'";
 
             case 'datetime':
             case 'timestamp':
-                return "'" . date('Y-m-d H:i:s', strtotime(($isUpdate ? '+1 week' : 'now'))) . "'";
+                return "'".date('Y-m-d H:i:s', strtotime(($isUpdate ? '+1 week' : 'now')))."'";
 
             case 'time':
-                return "'" . date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now'))) . "'";
+                return "'".date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now')))."'";
 
             case 'year':
-                return $isUpdate ? (date('Y') + 1) : date('Y');
+                return (string)($isUpdate ? (date('Y') + 1) : date('Y'));
 
             case 'json':
             case 'jsonb':
-                return "json_encode(['test' => '" . ($isUpdate ? 'updated' : 'value') . "'])";
+                return "json_encode(['test' => '".($isUpdate ? 'updated' : 'value')."'])";
 
             case 'uuid':
-                return "\$this->faker->uuid";
+                return '$this->faker->uuid';
 
             case 'ipaddress':
-                return "'" . long2ip(rand(0, 4294967295)) . "'";
+                return "'".long2ip(rand(0, 4294967295))."'";
 
             case 'macaddress':
                 $mac = [];
                 for ($i = 0; $i < 6; $i++) {
                     $mac[] = sprintf('%02X', rand(0, 255));
                 }
-                return "'" . implode(':', $mac) . "'";
+
+                return "'".implode(':', $mac)."'";
 
             case 'enum':
                 // Para enumeraciones, devolver un valor que debe ser reemplazado manualmente
@@ -1770,7 +1729,7 @@ EOT;
 
             default:
                 // Para tipos desconocidos, devolver un string genérico
-                return "'$prefix" . "test_value'";
+                return "'$prefix"."test_value'";
         }
     }
 }
