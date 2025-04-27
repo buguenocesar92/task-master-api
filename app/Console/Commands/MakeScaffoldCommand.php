@@ -1648,6 +1648,10 @@ EOT;
 
     /**
      * Genera datos de prueba para los tests
+     *
+     * @param array $fields Campos del modelo
+     * @param bool $isUpdate Indica si es para una prueba de actualización
+     * @return string Cadena formateada con los datos de prueba
      */
     protected function generateTestData(array $fields, bool $isUpdate = false): string
     {
@@ -1674,6 +1678,11 @@ EOT;
 
     /**
      * Obtiene un valor de prueba según el tipo de campo
+     *
+     * @param string $type Tipo de campo en la base de datos
+     * @param string $fieldName Nombre del campo
+     * @param bool $isUpdate Indica si es para una prueba de actualización
+     * @return string|null Valor formateado para pruebas
      */
     protected function getTestValueForType(string $type, string $fieldName, bool $isUpdate = false): ?string
     {
@@ -1682,18 +1691,22 @@ EOT;
         switch (strtolower($type)) {
             case 'string':
                 // Intentar detectar algunos campos comunes y generar valores apropiados
-                if (strpos($fieldName, 'email') !== false) {
+                if (preg_match('/(email|correo)/i', $fieldName)) {
                     return "'$prefix"."test@example.com'";
-                } elseif (strpos($fieldName, 'name') !== false || strpos($fieldName, 'nombre') !== false) {
+                } elseif (preg_match('/(name|nombre|titulo|title)/i', $fieldName)) {
                     return "'$prefix"."Test Name'";
-                } elseif (strpos($fieldName, 'password') !== false || strpos($fieldName, 'contraseña') !== false) {
+                } elseif (preg_match('/(password|contraseña|clave)/i', $fieldName)) {
                     return "bcrypt('password')";
-                } elseif (strpos($fieldName, 'description') !== false || strpos($fieldName, 'descripcion') !== false) {
+                } elseif (preg_match('/(description|descripcion|detalle|detail)/i', $fieldName)) {
                     return "'$prefix"."Test Description'";
-                } elseif (strpos($fieldName, 'address') !== false || strpos($fieldName, 'direccion') !== false) {
+                } elseif (preg_match('/(address|direccion)/i', $fieldName)) {
                     return "'$prefix"."123 Test Street'";
-                } elseif (strpos($fieldName, 'phone') !== false || strpos($fieldName, 'telefono') !== false) {
+                } elseif (preg_match('/(phone|telefono|celular|mobile)/i', $fieldName)) {
                     return "'555-".rand(1000, 9999)."'";
+                } elseif (preg_match('/(url|link|enlace)/i', $fieldName)) {
+                    return "'https://example.com/$prefix"."test'";
+                } elseif (preg_match('/(code|codigo)/i', $fieldName)) {
+                    return "'$prefix".strtoupper(substr(md5(rand()), 0, 8))."'";
                 } else {
                     return "'$prefix".'test_'.$fieldName."'";
                 }
@@ -1707,16 +1720,37 @@ EOT;
             case 'biginteger':
             case 'smallinteger':
             case 'mediuminteger':
+            case 'tinyinteger':
             case 'int':
             case 'bigint':
             case 'smallint':
             case 'mediumint':
-                return (string) ($isUpdate ? rand(1000, 9999) : rand(100, 999));
+                // Detectar campos especiales por nombre
+                if (preg_match('/(age|edad)/i', $fieldName)) {
+                    return (string) ($isUpdate ? rand(25, 65) : rand(18, 45));
+                } elseif (preg_match('/(year|año)/i', $fieldName)) {
+                    return (string) ($isUpdate ? date('Y') + 1 : date('Y'));
+                } elseif (preg_match('/(status|estado)/i', $fieldName)) {
+                    return (string) ($isUpdate ? 2 : 1);
+                } elseif (preg_match('/(quantity|cantidad|stock)/i', $fieldName)) {
+                    return (string) ($isUpdate ? rand(50, 100) : rand(1, 49));
+                } elseif (preg_match('/order/i', $fieldName)) {
+                    return (string) ($isUpdate ? 2 : 1);
+                } else {
+                    return (string) ($isUpdate ? rand(1000, 9999) : rand(100, 999));
+                }
 
             case 'decimal':
             case 'double':
             case 'float':
-                return (string) ($isUpdate ? (rand(1000, 9999) / 100) : (rand(100, 999) / 100));
+                // Detectar campos especiales por nombre
+                if (preg_match('/(price|precio|cost|costo)/i', $fieldName)) {
+                    return number_format(($isUpdate ? rand(100, 1000) : rand(10, 99)) + (rand(0, 99) / 100), 2, '.', '');
+                } elseif (preg_match('/(rate|tasa|percentage|porcentaje)/i', $fieldName)) {
+                    return number_format(($isUpdate ? rand(5, 20) : rand(1, 5)) + (rand(0, 99) / 100), 2, '.', '');
+                } else {
+                    return number_format(($isUpdate ? rand(1000, 9999) : rand(100, 999)) / 100, 2, '.', '');
+                }
 
             case 'boolean':
             case 'bool':
@@ -1737,10 +1771,14 @@ EOT;
 
             case 'json':
             case 'jsonb':
-                return "json_encode(['test' => '".($isUpdate ? 'updated' : 'value')."'])";
+                if (preg_match('/(options|opciones|settings|config)/i', $fieldName)) {
+                    return "json_encode(['enabled' => ".($isUpdate ? 'false' : 'true').", 'value' => '".($isUpdate ? 'updated' : 'default')."'])";
+                } else {
+                    return "json_encode(['test' => '".($isUpdate ? 'updated' : 'value')."'])";
+                }
 
             case 'uuid':
-                return '$this->faker->uuid';
+                return "\$this->faker->uuid()";
 
             case 'ipaddress':
                 return "'".long2ip(rand(0, 4294967295))."'";
@@ -1750,12 +1788,25 @@ EOT;
                 for ($i = 0; $i < 6; $i++) {
                     $mac[] = sprintf('%02X', rand(0, 255));
                 }
-
                 return "'".implode(':', $mac)."'";
 
             case 'enum':
-                // Para enumeraciones, devolver un valor que debe ser reemplazado manualmente
-                return "'option1'";
+                // Para enumeraciones, intentar detectar tipos comunes
+                if (preg_match('/(status|estado)/i', $fieldName)) {
+                    return "'".($isUpdate ? 'inactive' : 'active')."'";
+                } elseif (preg_match('/(gender|genero)/i', $fieldName)) {
+                    return "'".($isUpdate ? 'female' : 'male')."'";
+                } elseif (preg_match('/(type|tipo)/i', $fieldName)) {
+                    return "'".($isUpdate ? 'secondary' : 'primary')."'";
+                } else {
+                    return "'option".($isUpdate ? '2' : '1')."'";
+                }
+
+            case 'foreignid':
+            case 'foreign':
+            case 'foreignkey':
+                // Para claves foráneas, intentar generar un ID realista
+                return (string) ($isUpdate ? rand(2, 5) : 1);
 
             default:
                 // Para tipos desconocidos, devolver un string genérico
