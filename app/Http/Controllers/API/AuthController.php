@@ -13,9 +13,6 @@ class AuthController extends Controller
 {
     /**
      * Register a new user
-     *
-     * @param RegisterRequest $request
-     * @return JsonResponse
      */
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -31,7 +28,7 @@ class AuthController extends Controller
 
         return response()->json([
             'data' => new UserResource($user),
-            'token' => $token
+            'token' => $token,
         ], 201);
     }
 }

@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\API\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
-use App\Models\User;
 
 class RegistrationTest extends TestCase
 {
@@ -33,7 +33,7 @@ class RegistrationTest extends TestCase
                     'email',
                     'created_at',
                 ],
-                'token'
+                'token',
             ]);
 
         $this->assertDatabaseHas('users', [
