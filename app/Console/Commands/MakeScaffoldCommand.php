@@ -1649,8 +1649,8 @@ EOT;
     /**
      * Genera datos de prueba para los tests
      *
-     * @param array $fields Campos del modelo
-     * @param bool $isUpdate Indica si es para una prueba de actualización
+     * @param  array  $fields  Campos del modelo
+     * @param  bool  $isUpdate  Indica si es para una prueba de actualización
      * @return string Cadena formateada con los datos de prueba
      */
     protected function generateTestData(array $fields, bool $isUpdate = false): string
@@ -1679,9 +1679,9 @@ EOT;
     /**
      * Obtiene un valor de prueba según el tipo de campo
      *
-     * @param string $type Tipo de campo en la base de datos
-     * @param string $fieldName Nombre del campo
-     * @param bool $isUpdate Indica si es para una prueba de actualización
+     * @param  string  $type  Tipo de campo en la base de datos
+     * @param  string  $fieldName  Nombre del campo
+     * @param  bool  $isUpdate  Indica si es para una prueba de actualización
      * @return string|null Valor formateado para pruebas
      */
     protected function getTestValueForType(string $type, string $fieldName, bool $isUpdate = false): ?string
@@ -1706,7 +1706,7 @@ EOT;
                 } elseif (preg_match('/(url|link|enlace)/i', $fieldName)) {
                     return "'https://example.com/$prefix"."test'";
                 } elseif (preg_match('/(code|codigo)/i', $fieldName)) {
-                    return "'$prefix".strtoupper(substr(md5(rand()), 0, 8))."'";
+                    return "'$prefix".strtoupper(substr(md5((string)rand()), 0, 8))."'";
                 } else {
                     return "'$prefix".'test_'.$fieldName."'";
                 }
@@ -1778,7 +1778,7 @@ EOT;
                 }
 
             case 'uuid':
-                return "\$this->faker->uuid()";
+                return '$this->faker->uuid()';
 
             case 'ipaddress':
                 return "'".long2ip(rand(0, 4294967295))."'";
@@ -1788,6 +1788,7 @@ EOT;
                 for ($i = 0; $i < 6; $i++) {
                     $mac[] = sprintf('%02X', rand(0, 255));
                 }
+
                 return "'".implode(':', $mac)."'";
 
             case 'enum':
