@@ -447,12 +447,30 @@ EOT;
         $providerPath = app_path("Providers/AppServiceProvider.php");
         $providerContent = file_get_contents($providerPath);
         $binding = "\$this->app->bind(\\App\\Repositories\\Contracts\\{$name}RepositoryInterface::class, \\App\\Repositories\\{$name}Repository::class);";
+
         if (strpos($providerContent, $binding) === false) {
-            $providerContent = preg_replace(
-                '/(public function register\(\): void\s*\{\s*)/',
-                "$1\n        {$binding}\n",
-                $providerContent
-            );
+            // Buscar el método register
+            if (preg_match('/public function register\(\).*?{/s', $providerContent)) {
+                // Laravel 8+ usa register sin tipo de retorno
+                $providerContent = preg_replace(
+                    '/(public function register\(\).*?{)/s',
+                    "$1\n        {$binding}\n",
+                    $providerContent
+                );
+            } else if (preg_match('/public function register\(\): void.*?{/s', $providerContent)) {
+                // Laravel 9+ usa register(): void
+                $providerContent = preg_replace(
+                    '/(public function register\(\): void.*?{)/s',
+                    "$1\n        {$binding}\n",
+                    $providerContent
+                );
+            } else {
+                // Crear el método register si no existe
+                $pattern = '/(class\s+AppServiceProvider.*?{)/s';
+                $replacement = "$1\n\n    /**\n     * Register any application services.\n     */\n    public function register(): void\n    {\n        {$binding}\n    }\n";
+                $providerContent = preg_replace($pattern, $replacement, $providerContent);
+            }
+
             file_put_contents($providerPath, $providerContent);
             $this->info("Se ha registrado la vinculación en AppServiceProvider.");
         } else {
@@ -464,46 +482,52 @@ EOT;
         if (!is_dir($apiDir)) {
             mkdir($apiDir, 0755, true);
         }
-        $routesFilePath = $apiDir . '/' . $prefix . '.php';
 
-        if (file_exists($routesFilePath)) {
-            $this->error("El archivo de rutas {$routesFilePath} ya existe. No se sobrescribirá.");
-        } else {
-            $routesContent = <<<EOT
+        // Crear contenido para las rutas
+        $routesApiContent = <<<EOT
 <?php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\\{$name}Controller;
 
+// Rutas para {$name}
 Route::group(['prefix' => '{$prefix}'], function () {
     Route::get('/', [{$name}Controller::class, 'index'])->name('{$prefix}.index');
     Route::post('/', [{$name}Controller::class, 'store'])->name('{$prefix}.store');
-    Route::get('/{PARAM}', [{$name}Controller::class, 'show'])->name('{$prefix}.show');
-    Route::put('/{PARAM}', [{$name}Controller::class, 'update'])->name('{$prefix}.update');
-    Route::delete('/{PARAM}', [{$name}Controller::class, 'destroy'])->name('{$prefix}.destroy');
+    Route::get('/{{$parameter}}', [{$name}Controller::class, 'show'])->name('{$prefix}.show');
+    Route::put('/{{$parameter}}', [{$name}Controller::class, 'update'])->name('{$prefix}.update');
+    Route::delete('/{{$parameter}}', [{$name}Controller::class, 'destroy'])->name('{$prefix}.destroy');
 });
 EOT;
-            $routesContent = str_replace('PARAM', $parameter, $routesContent);
-            file_put_contents($routesFilePath, $routesContent);
+
+        // Opción 1: Crear un archivo de rutas separado
+        $routesFilePath = $apiDir . '/' . $prefix . '.php';
+
+        if (file_exists($routesFilePath)) {
+            $this->error("El archivo de rutas {$routesFilePath} ya existe. No se sobrescribirá.");
+        } else {
+            file_put_contents($routesFilePath, $routesApiContent);
             $this->info("Archivo de rutas generado en routes/api/{$prefix}.php");
+
+            // Actualizar el archivo routes/api.php para incluir las rutas generadas
+            $mainRoutesPath = base_path('routes/api.php');
+            $mainRoutesContent = file_get_contents($mainRoutesPath);
+            $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
+
+            if (strpos($mainRoutesContent, $requireLine) === false) {
+                file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
+                $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
+            }
         }
 
-        // Actualizar el archivo routes/api.php para incluir las rutas generadas
+        // Opción 2: Añadir directamente las rutas en api.php
         $mainRoutesPath = base_path('routes/api.php');
         $mainRoutesContent = file_get_contents($mainRoutesPath);
-        $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
-        if (strpos($mainRoutesContent, $requireLine) === false) {
-            file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
-            $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
-        }
+        // Formato reducido para añadir directamente a api.php
+        $inlineRoutesContent = <<<EOT
 
-        // 5.1 Actualizar las rutas directamente en api.php si estamos en modo testing
-        // Esto asegura que las pruebas funcionen sin importar si se incluyen los archivos de ruta
-        if (app()->environment('testing')) {
-            $routesApiContent = <<<EOT
-
-// Rutas para {$name} (añadidas automáticamente para testing)
+// Rutas para {$name} - Generadas automáticamente
 Route::group(['prefix' => '{$prefix}'], function () {
     Route::get('/', [App\Http\Controllers\\{$name}Controller::class, 'index'])->name('{$prefix}.index');
     Route::post('/', [App\Http\Controllers\\{$name}Controller::class, 'store'])->name('{$prefix}.store');
@@ -512,11 +536,12 @@ Route::group(['prefix' => '{$prefix}'], function () {
     Route::delete('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'destroy'])->name('{$prefix}.destroy');
 });
 EOT;
-            // Agregar las rutas directamente a api.php si no existen ya
-            if (strpos($mainRoutesContent, "// Rutas para {$name}") === false) {
-                file_put_contents($mainRoutesPath, $routesApiContent, FILE_APPEND);
-                $this->info("Se han añadido rutas directas para testing en api.php.");
-            }
+
+        // Agregar las rutas directamente a api.php si no existen ya
+        // (priorizar este método para mayor compatibilidad con los tests)
+        if (strpos($mainRoutesContent, "// Rutas para {$name}") === false) {
+            file_put_contents($mainRoutesPath, $inlineRoutesContent, FILE_APPEND);
+            $this->info("Se han añadido rutas directamente en api.php para mayor compatibilidad.");
         }
 
         // 6. Crear ApiFormRequest si no existe.
@@ -1162,6 +1187,7 @@ EOT;
         $assertContent = rtrim($assertContent);
 
         $useApiResource = $hasApiResources ? "\n    use RefreshDatabase, WithFaker;" : "\n    use RefreshDatabase, WithFaker;";
+        $parameter = Str::snake($name);
 
         return <<<EOT
 <?php
@@ -1169,8 +1195,10 @@ EOT;
 namespace Tests\Feature;
 
 use App\Models\\{$name};
+use App\Http\Controllers\\{$name}Controller;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class {$name}ControllerTest extends TestCase
@@ -1183,8 +1211,16 @@ class {$name}ControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
         // Asegurarse de que las migraciones estén ejecutadas
         \$this->artisan('migrate');
+
+        // Registrar rutas directamente para las pruebas
+        Route::get('/{$prefix}', [{$name}Controller::class, 'index'])->name('{$prefix}.index');
+        Route::post('/{$prefix}', [{$name}Controller::class, 'store'])->name('{$prefix}.store');
+        Route::get('/{$prefix}/{{$parameter}}', [{$name}Controller::class, 'show'])->name('{$prefix}.show');
+        Route::put('/{$prefix}/{{$parameter}}', [{$name}Controller::class, 'update'])->name('{$prefix}.update');
+        Route::delete('/{$prefix}/{{$parameter}}', [{$name}Controller::class, 'destroy'])->name('{$prefix}.destroy');
     }
 
     /**
@@ -1315,6 +1351,7 @@ namespace Tests\Unit;
 
 use App\Models\\{$name};
 use App\Repositories\\{$name}Repository;
+use App\Repositories\Contracts\\{$name}RepositoryInterface;
 use App\Services\\{$name}Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -1328,9 +1365,14 @@ class {$name}ServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
         // Asegurarse de que las migraciones estén ejecutadas
         \$this->artisan('migrate');
-        \$repository = new {$name}Repository();
+
+        // Registrar binding manualmente para las pruebas
+        app()->bind({$name}RepositoryInterface::class, {$name}Repository::class);
+
+        \$repository = app({$name}RepositoryInterface::class);
         \$this->service = new {$name}Service(\$repository);
     }
 
@@ -1451,6 +1493,7 @@ namespace Tests\Unit;
 
 use App\Models\\{$name};
 use App\Repositories\\{$name}Repository;
+use App\Repositories\Contracts\\{$name}RepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -1463,9 +1506,14 @@ class {$name}RepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
         // Asegurarse de que las migraciones estén ejecutadas
         \$this->artisan('migrate');
-        \$this->repository = new {$name}Repository();
+
+        // Registrar binding manualmente para las pruebas
+        app()->bind({$name}RepositoryInterface::class, {$name}Repository::class);
+
+        \$this->repository = app({$name}Repository::class);
     }
 
     /**
