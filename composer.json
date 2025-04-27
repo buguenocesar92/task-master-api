@@ -14,11 +14,13 @@
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
-        "laravel/pint": "^1.13",
+        "laravel/pint": "^1.22",
         "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^11.5.3"
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.5.3",
+        "squizlabs/php_codesniffer": "^3.12"
     },
     "autoload": {
         "psr-4": {
@@ -55,6 +57,26 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "lint": [
+            "@php ./vendor/bin/pint --test"
+        ],
+        "lint:fix": [
+            "@php ./vendor/bin/pint"
+        ],
+        "analyse": [
+            "@php ./vendor/bin/phpstan analyse"
+        ],
+        "sniff": [
+            "@php ./vendor/bin/phpcs"
+        ],
+        "sniff:fix": [
+            "@php ./vendor/bin/phpcbf"
+        ],
+        "code:check": [
+            "@lint",
+            "@analyse",
+            "@sniff"
         ]
     },
     "extra": {
