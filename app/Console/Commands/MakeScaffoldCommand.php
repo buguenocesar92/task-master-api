@@ -1204,7 +1204,8 @@ use App\Models\\{$name};
 
 class {$name}ControllerTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use RefreshDatabase;
+    use WithFaker;
 
     /**
      * Configurar el entorno para las pruebas
