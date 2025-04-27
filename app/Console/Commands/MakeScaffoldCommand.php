@@ -107,10 +107,27 @@ class MakeScaffoldCommand extends Command
             $fillableFields = array_keys($fields);
             $fillableString = "'".implode("', '", $fillableFields)."'";
 
+            // Generar PHPDoc para las propiedades
+            $phpDocProperties = [];
+            $phpDocProperties[] = '/**';
+            $phpDocProperties[] = ' * @property int $id';
+            foreach ($fields as $fieldName => $field) {
+                $docType = $this->getPhpDocTypeForField($field['type'], $field['nullable'] ?? false);
+                $phpDocProperties[] = " * @property {$docType} \${$fieldName}";
+            }
+            $phpDocProperties[] = ' * @property \Carbon\Carbon $created_at';
+            $phpDocProperties[] = ' * @property \Carbon\Carbon $updated_at';
+            if (str_contains($modelContent, 'SoftDeletes')) {
+                $phpDocProperties[] = ' * @property \Carbon\Carbon|null $deleted_at';
+            }
+            $phpDocProperties[] = ' */';
+            $phpDocString = implode("\n", $phpDocProperties);
+
             if (strpos($modelContent, 'protected $fillable') === false) {
+                // Add PHPDoc and fillable
                 $modelContent = preg_replace(
                     '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
-                    "$1\n    protected \$fillable = [{$fillableString}];",
+                    "$phpDocString\n$1\n    protected \$fillable = [{$fillableString}];",
                     $modelContent
                 );
 
@@ -400,29 +417,29 @@ class {$name}Repository implements {$name}RepositoryInterface
 {
     public function getAll()
     {
-        return {$name}::all();
+        return {$name}::query()->get();
     }
 
     public function findById(int \$id)
     {
-        return {$name}::findOrFail(\$id);
+        return {$name}::query()->findOrFail(\$id);
     }
 
     public function create(array \$data)
     {
-        return {$name}::create(\$data);
+        return {$name}::query()->create(\$data);
     }
 
     public function update(int \$id, array \$data)
     {
-        \$model = {$name}::findOrFail(\$id);
+        \$model = {$name}::query()->findOrFail(\$id);
         \$model->update(\$data);
         return \$model;
     }
 
     public function delete(int \$id): void
     {
-        \$model = {$name}::findOrFail(\$id);
+        \$model = {$name}::query()->findOrFail(\$id);
         \$model->delete();
     }
 }
@@ -1183,6 +1200,7 @@ use Tests\TestCase;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Models\\{$name};
 
 class {$name}ControllerTest extends TestCase
 {
@@ -1199,14 +1217,14 @@ class {$name}ControllerTest extends TestCase
         \$this->artisan('migrate');
 
         // Registrar binding para repositorio manualmente
-        \$repositoryInterface = 'App\\Repositories\\Contracts\\{$name}RepositoryInterface';
-        \$repository = 'App\\Repositories\\{$name}Repository';
+        \$repositoryInterface = 'App\\\\Repositories\\\\Contracts\\\\{$name}RepositoryInterface';
+        \$repository = 'App\\\\Repositories\\\\{$name}Repository';
         if (interface_exists(\$repositoryInterface) && class_exists(\$repository)) {
             app()->bind(\$repositoryInterface, \$repository);
         }
 
         // Registrar rutas directamente para las pruebas si existe el controlador
-        \$controller = 'App\\Http\\Controllers\\{$name}Controller';
+        \$controller = 'App\\\\Http\\\\Controllers\\\\{$name}Controller';
         if (class_exists(\$controller)) {
             Route::get('/{$prefix}', [\$controller, 'index'])->name('{$prefix}.index');
             Route::post('/{$prefix}', [\$controller, 'store'])->name('{$prefix}.store');
@@ -1222,15 +1240,13 @@ class {$name}ControllerTest extends TestCase
     public function test_index(): void
     {
         // Verificar que el modelo exista
-        \$modelClass = 'App\\Models\\{$name}';
-        if (!class_exists(\$modelClass)) {
-            \$this->markTestSkipped("La clase \$modelClass no existe.");
-            return;
+        if (!class_exists({$name}::class)) {
+            \$this->markTestSkipped('La clase {$name} no existe.');
         }
 
         // Crear algunos registros con datos válidos
         \$data = {$testData};
-        \$model = app(\$modelClass);
+        \$model = app({$name}::class);
         \$model::query()->create(\$data);
         \$model::query()->create(\$data);
         \$model::query()->create(\$data);
@@ -1266,15 +1282,13 @@ class {$name}ControllerTest extends TestCase
     public function test_show(): void
     {
         // Verificar que el modelo exista
-        \$modelClass = 'App\\Models\\{$name}';
-        if (!class_exists(\$modelClass)) {
-            \$this->markTestSkipped("La clase \$modelClass no existe.");
-            return;
+        if (!class_exists({$name}::class)) {
+            \$this->markTestSkipped('La clase {$name} no existe.');
         }
 
         // Crear un registro con datos válidos
         \$data = {$testData};
-        \$model = app(\$modelClass);
+        \$model = app({$name}::class);
         \${$parameter} = \$model::query()->create(\$data);
 
         // Hacer la petición
@@ -1290,15 +1304,13 @@ class {$name}ControllerTest extends TestCase
     public function test_update(): void
     {
         // Verificar que el modelo exista
-        \$modelClass = 'App\\Models\\{$name}';
-        if (!class_exists(\$modelClass)) {
-            \$this->markTestSkipped("La clase \$modelClass no existe.");
-            return;
+        if (!class_exists({$name}::class)) {
+            \$this->markTestSkipped('La clase {$name} no existe.');
         }
 
         // Crear un registro con datos válidos
         \$originalData = {$testData};
-        \$model = app(\$modelClass);
+        \$model = app({$name}::class);
         \${$parameter} = \$model::query()->create(\$originalData);
 
         // Datos para actualizar
@@ -1325,15 +1337,13 @@ class {$name}ControllerTest extends TestCase
     public function test_destroy(): void
     {
         // Verificar que el modelo exista
-        \$modelClass = 'App\\Models\\{$name}';
-        if (!class_exists(\$modelClass)) {
-            \$this->markTestSkipped("La clase \$modelClass no existe.");
-            return;
+        if (!class_exists({$name}::class)) {
+            \$this->markTestSkipped('La clase {$name} no existe.');
         }
 
         // Crear un registro con datos válidos
         \$data = {$testData};
-        \$model = app(\$modelClass);
+        \$model = app({$name}::class);
         \${$parameter} = \$model::query()->create(\$data);
         \$id = \${$parameter}->id;
 
@@ -1402,10 +1412,9 @@ class {$name}ServiceTest extends TestCase
         \$data = {$testData};
 
         // Usar el método query() para acceder a los métodos estáticos
-        \$model = app('App\\Models\\{$name}');
-        \$model::query()->create(\$data);
-        \$model::query()->create(\$data);
-        \$model::query()->create(\$data);
+        {$name}::query()->create(\$data);
+        {$name}::query()->create(\$data);
+        {$name}::query()->create(\$data);
 
         // Obtener todos
         \$result = \$this->service->getAll();
@@ -1422,8 +1431,7 @@ class {$name}ServiceTest extends TestCase
         // Crear un registro con datos válidos
         \$data = {$testData};
 
-        \$model = app('App\\Models\\{$name}');
-        \${$lowercaseName} = \$model::query()->create(\$data);
+        \${$lowercaseName} = {$name}::query()->create(\$data);
 
         // Buscar por ID
         \$result = \$this->service->findById(\${$lowercaseName}->id);
@@ -1456,8 +1464,7 @@ class {$name}ServiceTest extends TestCase
         // Crear un registro con datos válidos
         \$originalData = {$testData};
 
-        \$model = app('App\\Models\\{$name}');
-        \${$lowercaseName} = \$model::query()->create(\$originalData);
+        \${$lowercaseName} = {$name}::query()->create(\$originalData);
 
         // Datos para actualizar
         \$updateData = {$updateData};
@@ -1485,8 +1492,7 @@ class {$name}ServiceTest extends TestCase
         // Crear un registro con datos válidos
         \$data = {$testData};
 
-        \$model = app('App\\Models\\{$name}');
-        \${$lowercaseName} = \$model::query()->create(\$data);
+        \${$lowercaseName} = {$name}::query()->create(\$data);
 
         // Eliminar
         \$this->service->delete(\${$lowercaseName}->id);
@@ -1518,7 +1524,6 @@ use App\Repositories\\{$name}Repository;
 use App\Repositories\Contracts\\{$name}RepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use Illuminate\Database\Eloquent\Factories\Factory;
 
 class {$name}RepositoryTest extends TestCase
 {
@@ -1548,10 +1553,9 @@ class {$name}RepositoryTest extends TestCase
         \$data = {$testData};
 
         // Usar el método estático create con seguridad
-        \$model = app('App\\Models\\{$name}');
-        \$model::query()->create(\$data);
-        \$model::query()->create(\$data);
-        \$model::query()->create(\$data);
+        {$name}::query()->create(\$data);
+        {$name}::query()->create(\$data);
+        {$name}::query()->create(\$data);
 
         // Obtener todos
         \$result = \$this->repository->getAll();
@@ -1568,8 +1572,7 @@ class {$name}RepositoryTest extends TestCase
         // Crear un registro con datos válidos
         \$data = {$testData};
 
-        \$model = app('App\\Models\\{$name}');
-        \${$lowercaseName} = \$model::query()->create(\$data);
+        \${$lowercaseName} = {$name}::query()->create(\$data);
 
         // Buscar por ID
         \$result = \$this->repository->findById(\${$lowercaseName}->id);
@@ -1602,8 +1605,7 @@ class {$name}RepositoryTest extends TestCase
         // Crear un registro con datos válidos
         \$originalData = {$testData};
 
-        \$model = app('App\\Models\\{$name}');
-        \${$lowercaseName} = \$model::query()->create(\$originalData);
+        \${$lowercaseName} = {$name}::query()->create(\$originalData);
 
         // Datos para actualizar
         \$updateData = {$updateData};
@@ -1631,8 +1633,7 @@ class {$name}RepositoryTest extends TestCase
         // Crear un registro con datos válidos
         \$data = {$testData};
 
-        \$model = app('App\\Models\\{$name}');
-        \${$lowercaseName} = \$model::query()->create(\$data);
+        \${$lowercaseName} = {$name}::query()->create(\$data);
 
         // Eliminar
         \$this->repository->delete(\${$lowercaseName}->id);
@@ -1759,5 +1760,65 @@ EOT;
                 // Para tipos desconocidos, devolver un string genérico
                 return "'$prefix"."test_value'";
         }
+    }
+
+    /**
+     * Obtiene el tipo de dato PHP para PHPDoc basado en el tipo de campo.
+     *
+     * @param  string  $fieldType  Tipo de campo en la base de datos
+     * @param  bool  $nullable  Si el campo puede ser nulo
+     * @return string Tipo PHP para PHPDoc
+     */
+    protected function getPhpDocTypeForField(string $fieldType, bool $nullable = false): string
+    {
+        $phpType = '';
+
+        switch (strtolower($fieldType)) {
+            case 'string':
+            case 'text':
+            case 'longtext':
+            case 'mediumtext':
+            case 'enum':
+            case 'json':
+            case 'jsonb':
+            case 'date':
+            case 'datetime':
+            case 'timestamp':
+            case 'time':
+            case 'year':
+            case 'ipaddress':
+            case 'macaddress':
+            case 'uuid':
+                $phpType = 'string';
+                break;
+
+            case 'integer':
+            case 'biginteger':
+            case 'smallinteger':
+            case 'mediuminteger':
+            case 'tinyinteger':
+            case 'int':
+            case 'bigint':
+            case 'smallint':
+            case 'mediumint':
+                $phpType = 'int';
+                break;
+
+            case 'float':
+            case 'double':
+            case 'decimal':
+                $phpType = 'float';
+                break;
+
+            case 'boolean':
+            case 'bool':
+                $phpType = 'bool';
+                break;
+
+            default:
+                $phpType = 'mixed';
+        }
+
+        return $nullable ? "{$phpType}|null" : $phpType;
     }
 }
