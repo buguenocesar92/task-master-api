@@ -153,4 +153,16 @@ Para considerar una funcionalidad como completada, debe cumplir:
 - Autenticación segura con tokens JWT
 - Validación adecuada de todos los inputs
 - Respuestas API con formato JSON consistente
-- Manejo adecuado de errores con códigos HTTP apropiados 
+- Manejo adecuado de errores con códigos HTTP apropiados
+
+# Instalar el paquete JWT para Laravel
+composer require tymon/jwt-auth
+
+# Publicar la configuración
+php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider"
+
+# Generar la clave secreta JWT
+php artisan jwt:secret
+
+# Si ya existe User, modificarlo; si no, crearlo
+php artisan make:model User -m 
