@@ -768,6 +768,19 @@ EOT;
         if ($withTests) {
             $this->generateTests($name, $prefix, $fields);
         }
+
+        // 11. Ejecutar el formateador de código para corregir problemas de estilo
+        $this->info('Aplicando formateador de código para cumplir con los estándares de estilo...');
+        if (file_exists(base_path('vendor/bin/pint'))) {
+            system(base_path('vendor/bin/pint'), $exitCode);
+            if ($exitCode === 0) {
+                $this->info('Código formateado exitosamente.');
+            } else {
+                $this->warn('No se pudo formatear el código automáticamente. Ejecute "composer lint:fix" manualmente.');
+            }
+        } else {
+            $this->warn('Laravel Pint no está instalado. Ejecute "composer lint:fix" manualmente para formatear el código.');
+        }
     }
 
     /**
@@ -1208,20 +1221,19 @@ class {$name}ControllerTest extends TestCase
      */
     public function test_index(): void
     {
-        // Crear algunos registros con datos válidos
-        \$data = {$testData};
-
-        // Usar class_exists para verificar que la clase existe antes de usarla
-        \$model = 'App\\Models\\{$name}';
-        if (class_exists(\$model)) {
-            \$modelClass = app(\$model);
-            \$modelClass::create(\$data);
-            \$modelClass::create(\$data);
-            \$modelClass::create(\$data);
-        } else {
-            \$this->markTestSkipped('La clase {$name} no existe.');
+        // Verificar que el modelo exista
+        \$modelClass = 'App\\Models\\{$name}';
+        if (!class_exists(\$modelClass)) {
+            \$this->markTestSkipped("La clase \$modelClass no existe.");
             return;
         }
+
+        // Crear algunos registros con datos válidos
+        \$data = {$testData};
+        \$model = app(\$modelClass);
+        \$model::query()->create(\$data);
+        \$model::query()->create(\$data);
+        \$model::query()->create(\$data);
 
         // Hacer la petición
         \$response = \$this->getJson('/{$prefix}');
@@ -1253,18 +1265,17 @@ class {$name}ControllerTest extends TestCase
      */
     public function test_show(): void
     {
-        // Crear un registro con datos válidos
-        \$data = {$testData};
-
-        // Usar class_exists para verificar que la clase existe antes de usarla
-        \$model = 'App\\Models\\{$name}';
-        if (class_exists(\$model)) {
-            \$modelClass = app(\$model);
-            \${$parameter} = \$modelClass::create(\$data);
-        } else {
-            \$this->markTestSkipped('La clase {$name} no existe.');
+        // Verificar que el modelo exista
+        \$modelClass = 'App\\Models\\{$name}';
+        if (!class_exists(\$modelClass)) {
+            \$this->markTestSkipped("La clase \$modelClass no existe.");
             return;
         }
+
+        // Crear un registro con datos válidos
+        \$data = {$testData};
+        \$model = app(\$modelClass);
+        \${$parameter} = \$model::query()->create(\$data);
 
         // Hacer la petición
         \$response = \$this->getJson("/{$prefix}/{\${$parameter}->id}");
@@ -1278,18 +1289,17 @@ class {$name}ControllerTest extends TestCase
      */
     public function test_update(): void
     {
-        // Crear un registro con datos válidos
-        \$originalData = {$testData};
-
-        // Usar class_exists para verificar que la clase existe antes de usarla
-        \$model = 'App\\Models\\{$name}';
-        if (class_exists(\$model)) {
-            \$modelClass = app(\$model);
-            \${$parameter} = \$modelClass::create(\$originalData);
-        } else {
-            \$this->markTestSkipped('La clase {$name} no existe.');
+        // Verificar que el modelo exista
+        \$modelClass = 'App\\Models\\{$name}';
+        if (!class_exists(\$modelClass)) {
+            \$this->markTestSkipped("La clase \$modelClass no existe.");
             return;
         }
+
+        // Crear un registro con datos válidos
+        \$originalData = {$testData};
+        \$model = app(\$modelClass);
+        \${$parameter} = \$model::query()->create(\$originalData);
 
         // Datos para actualizar
         \$updateData = {$updateData};
@@ -1314,19 +1324,18 @@ class {$name}ControllerTest extends TestCase
      */
     public function test_destroy(): void
     {
-        // Crear un registro con datos válidos
-        \$data = {$testData};
-
-        // Usar class_exists para verificar que la clase existe antes de usarla
-        \$model = 'App\\Models\\{$name}';
-        if (class_exists(\$model)) {
-            \$modelClass = app(\$model);
-            \${$parameter} = \$modelClass::create(\$data);
-            \$id = \${$parameter}->id;
-        } else {
-            \$this->markTestSkipped('La clase {$name} no existe.');
+        // Verificar que el modelo exista
+        \$modelClass = 'App\\Models\\{$name}';
+        if (!class_exists(\$modelClass)) {
+            \$this->markTestSkipped("La clase \$modelClass no existe.");
             return;
         }
+
+        // Crear un registro con datos válidos
+        \$data = {$testData};
+        \$model = app(\$modelClass);
+        \${$parameter} = \$model::query()->create(\$data);
+        \$id = \${$parameter}->id;
 
         // Hacer la petición
         \$response = \$this->deleteJson("/{$prefix}/{\${$parameter}->id}");
@@ -1336,7 +1345,7 @@ class {$name}ControllerTest extends TestCase
         \$response->assertJson(['message' => '{$name} eliminado']);
 
         // Verificar que no existe en la base de datos comprobando si podemos encontrarlo
-        \$this->assertNull(\$modelClass::find(\$id));
+        \$this->assertNull(\$model::query()->find(\$id));
     }
 }
 EOT;
@@ -1391,9 +1400,12 @@ class {$name}ServiceTest extends TestCase
     {
         // Crear algunos registros con datos válidos
         \$data = {$testData};
-        {$name}::create(\$data);
-        {$name}::create(\$data);
-        {$name}::create(\$data);
+
+        // Usar el método query() para acceder a los métodos estáticos
+        \$model = app('App\\Models\\{$name}');
+        \$model::query()->create(\$data);
+        \$model::query()->create(\$data);
+        \$model::query()->create(\$data);
 
         // Obtener todos
         \$result = \$this->service->getAll();
@@ -1409,7 +1421,9 @@ class {$name}ServiceTest extends TestCase
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
-        \${$lowercaseName} = {$name}::create(\$data);
+
+        \$model = app('App\\Models\\{$name}');
+        \${$lowercaseName} = \$model::query()->create(\$data);
 
         // Buscar por ID
         \$result = \$this->service->findById(\${$lowercaseName}->id);
@@ -1441,7 +1455,9 @@ class {$name}ServiceTest extends TestCase
     {
         // Crear un registro con datos válidos
         \$originalData = {$testData};
-        \${$lowercaseName} = {$name}::create(\$originalData);
+
+        \$model = app('App\\Models\\{$name}');
+        \${$lowercaseName} = \$model::query()->create(\$originalData);
 
         // Datos para actualizar
         \$updateData = {$updateData};
@@ -1456,7 +1472,7 @@ class {$name}ServiceTest extends TestCase
         foreach (\$updateData as \$key => \$value) {
             \$this->assertDatabaseHas('{$prefix}', [
                 'id' => \${$lowercaseName}->id,
-                \$key => \$value
+                \$key => \$value,
             ]);
         }
     }
@@ -1468,7 +1484,9 @@ class {$name}ServiceTest extends TestCase
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
-        \${$lowercaseName} = {$name}::create(\$data);
+
+        \$model = app('App\\Models\\{$name}');
+        \${$lowercaseName} = \$model::query()->create(\$data);
 
         // Eliminar
         \$this->service->delete(\${$lowercaseName}->id);
@@ -1500,6 +1518,7 @@ use App\Repositories\\{$name}Repository;
 use App\Repositories\Contracts\\{$name}RepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class {$name}RepositoryTest extends TestCase
 {
@@ -1527,9 +1546,12 @@ class {$name}RepositoryTest extends TestCase
     {
         // Crear algunos registros con datos válidos
         \$data = {$testData};
-        {$name}::create(\$data);
-        {$name}::create(\$data);
-        {$name}::create(\$data);
+
+        // Usar el método estático create con seguridad
+        \$model = app('App\\Models\\{$name}');
+        \$model::query()->create(\$data);
+        \$model::query()->create(\$data);
+        \$model::query()->create(\$data);
 
         // Obtener todos
         \$result = \$this->repository->getAll();
@@ -1545,7 +1567,9 @@ class {$name}RepositoryTest extends TestCase
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
-        \${$lowercaseName} = {$name}::create(\$data);
+
+        \$model = app('App\\Models\\{$name}');
+        \${$lowercaseName} = \$model::query()->create(\$data);
 
         // Buscar por ID
         \$result = \$this->repository->findById(\${$lowercaseName}->id);
@@ -1577,7 +1601,9 @@ class {$name}RepositoryTest extends TestCase
     {
         // Crear un registro con datos válidos
         \$originalData = {$testData};
-        \${$lowercaseName} = {$name}::create(\$originalData);
+
+        \$model = app('App\\Models\\{$name}');
+        \${$lowercaseName} = \$model::query()->create(\$originalData);
 
         // Datos para actualizar
         \$updateData = {$updateData};
@@ -1592,7 +1618,7 @@ class {$name}RepositoryTest extends TestCase
         foreach (\$updateData as \$key => \$value) {
             \$this->assertDatabaseHas('{$prefix}', [
                 'id' => \${$lowercaseName}->id,
-                \$key => \$value
+                \$key => \$value,
             ]);
         }
     }
@@ -1604,7 +1630,9 @@ class {$name}RepositoryTest extends TestCase
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
-        \${$lowercaseName} = {$name}::create(\$data);
+
+        \$model = app('App\\Models\\{$name}');
+        \${$lowercaseName} = \$model::query()->create(\$data);
 
         // Eliminar
         \$this->repository->delete(\${$lowercaseName}->id);
@@ -1681,12 +1709,12 @@ EOT;
             case 'bigint':
             case 'smallint':
             case 'mediumint':
-                return (string)($isUpdate ? rand(1000, 9999) : rand(100, 999));
+                return (string) ($isUpdate ? rand(1000, 9999) : rand(100, 999));
 
             case 'decimal':
             case 'double':
             case 'float':
-                return (string)($isUpdate ? (rand(1000, 9999) / 100) : (rand(100, 999) / 100));
+                return (string) ($isUpdate ? (rand(1000, 9999) / 100) : (rand(100, 999) / 100));
 
             case 'boolean':
             case 'bool':
@@ -1703,7 +1731,7 @@ EOT;
                 return "'".date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now')))."'";
 
             case 'year':
-                return (string)($isUpdate ? (date('Y') + 1) : date('Y'));
+                return (string) ($isUpdate ? (date('Y') + 1) : date('Y'));
 
             case 'json':
             case 'jsonb':
