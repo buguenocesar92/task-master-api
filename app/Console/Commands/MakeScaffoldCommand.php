@@ -127,7 +127,7 @@ class MakeScaffoldCommand extends Command
                 // Add PHPDoc and fillable
                 $modelContent = preg_replace(
                     '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
-                    "$phpDocString\n$1\n    protected \$fillable = [{$fillableString}];",
+                    "$phpDocString\n$1\n    use HasFactory;\n\n    protected \$fillable = [{$fillableString}];",
                     $modelContent
                 );
 
@@ -495,7 +495,7 @@ EOT;
         // 4. Actualizar AppServiceProvider para registrar la vinculación.
         $providerPath = app_path('Providers/AppServiceProvider.php');
         $providerContent = file_get_contents($providerPath);
-        $binding = "\$this->app->bind(\\App\\Repositories\\Contracts\\{$name}RepositoryInterface::class, \\App\\Repositories\\{$name}Repository::class);";
+        $binding = "\$this->app->bind(\n            \\App\\Repositories\\\\Contracts\\\\{$name}RepositoryInterface::class,\n            \\App\\Repositories\\\\{$name}Repository::class\n        );";
 
         if (strpos($providerContent, $binding) === false) {
             // Buscar el método register
@@ -541,11 +541,16 @@ use App\Http\Controllers\\{$name}Controller;
 
 // Rutas para {$name}
 Route::group(['prefix' => '{$prefix}'], function () {
-    Route::get('/', [{$name}Controller::class, 'index'])->name('{$prefix}.index');
-    Route::post('/', [{$name}Controller::class, 'store'])->name('{$prefix}.store');
-    Route::get('/{{$parameter}}', [{$name}Controller::class, 'show'])->name('{$prefix}.show');
-    Route::put('/{{$parameter}}', [{$name}Controller::class, 'update'])->name('{$prefix}.update');
-    Route::delete('/{{$parameter}}', [{$name}Controller::class, 'destroy'])->name('{$prefix}.destroy');
+    Route::get('/', [{$name}Controller::class, 'index'])
+        ->name('{$prefix}.index');
+    Route::post('/', [{$name}Controller::class, 'store'])
+        ->name('{$prefix}.store');
+    Route::get('/{{$parameter}}', [{$name}Controller::class, 'show'])
+        ->name('{$prefix}.show');
+    Route::put('/{{$parameter}}', [{$name}Controller::class, 'update'])
+        ->name('{$prefix}.update');
+    Route::delete('/{{$parameter}}', [{$name}Controller::class, 'destroy'])
+        ->name('{$prefix}.destroy');
 });
 EOT;
 
@@ -578,11 +583,16 @@ EOT;
 
 // Rutas para {$name} - Generadas automáticamente
 Route::group(['prefix' => '{$prefix}'], function () {
-    Route::get('/', [App\Http\Controllers\\{$name}Controller::class, 'index'])->name('{$prefix}.index');
-    Route::post('/', [App\Http\Controllers\\{$name}Controller::class, 'store'])->name('{$prefix}.store');
-    Route::get('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'show'])->name('{$prefix}.show');
-    Route::put('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'update'])->name('{$prefix}.update');
-    Route::delete('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'destroy'])->name('{$prefix}.destroy');
+    Route::get('/', [App\Http\Controllers\\{$name}Controller::class, 'index'])
+        ->name('{$prefix}.index');
+    Route::post('/', [App\Http\Controllers\\{$name}Controller::class, 'store'])
+        ->name('{$prefix}.store');
+    Route::get('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'show'])
+        ->name('{$prefix}.show');
+    Route::put('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'update'])
+        ->name('{$prefix}.update');
+    Route::delete('/{{$parameter}}', [App\Http\Controllers\\{$name}Controller::class, 'destroy'])
+        ->name('{$prefix}.destroy');
 });
 EOT;
 
@@ -1696,29 +1706,29 @@ EOT;
             case 'string':
                 // Intentar detectar algunos campos comunes y generar valores apropiados
                 if (preg_match('/(email|correo)/i', $fieldName)) {
-                    return "'$prefix"."test@example.com'";
+                    return "'" . $prefix . "test@example.com'";
                 } elseif (preg_match('/(name|nombre|titulo|title)/i', $fieldName)) {
-                    return "'$prefix"."Test Name'";
+                    return "'" . $prefix . "Test Name'";
                 } elseif (preg_match('/(password|contraseña|clave)/i', $fieldName)) {
                     return "bcrypt('password')";
                 } elseif (preg_match('/(description|descripcion|detalle|detail)/i', $fieldName)) {
-                    return "'$prefix"."Test Description'";
+                    return "'" . $prefix . "Test Description'";
                 } elseif (preg_match('/(address|direccion)/i', $fieldName)) {
-                    return "'$prefix"."123 Test Street'";
+                    return "'" . $prefix . "123 Test Street'";
                 } elseif (preg_match('/(phone|telefono|celular|mobile)/i', $fieldName)) {
-                    return "'555-".rand(1000, 9999)."'";
+                    return "'555-" . rand(1000, 9999) . "'";
                 } elseif (preg_match('/(url|link|enlace)/i', $fieldName)) {
-                    return "'https://example.com/$prefix"."test'";
+                    return "'https://example.com/" . $prefix . "test'";
                 } elseif (preg_match('/(code|codigo)/i', $fieldName)) {
-                    return "'$prefix".strtoupper(substr(md5((string) rand()), 0, 8))."'";
+                    return "'" . $prefix . strtoupper(substr(md5((string) rand()), 0, 8)) . "'";
                 } else {
-                    return "'$prefix".'test_'.$fieldName."'";
+                    return "'" . $prefix . 'test_' . $fieldName . "'";
                 }
 
             case 'text':
             case 'longtext':
             case 'mediumtext':
-                return "'$prefix".'This is a test text for '.$fieldName."'";
+                return "'" . $prefix . 'This is a test text for ' . $fieldName . "'";
 
             case 'integer':
             case 'biginteger':
@@ -1761,14 +1771,14 @@ EOT;
                 return $isUpdate ? 'false' : 'true';
 
             case 'date':
-                return "'".date('Y-m-d', strtotime(($isUpdate ? '+1 week' : 'now')))."'";
+                return "'" . date('Y-m-d', strtotime(($isUpdate ? '+1 week' : 'now'))) . "'";
 
             case 'datetime':
             case 'timestamp':
-                return "'".date('Y-m-d H:i:s', strtotime(($isUpdate ? '+1 week' : 'now')))."'";
+                return "'" . date('Y-m-d H:i:s', strtotime(($isUpdate ? '+1 week' : 'now'))) . "'";
 
             case 'time':
-                return "'".date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now')))."'";
+                return "'" . date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now'))) . "'";
 
             case 'year':
                 return (string) ($isUpdate ? (date('Y') + 1) : date('Y'));
@@ -1776,16 +1786,16 @@ EOT;
             case 'json':
             case 'jsonb':
                 if (preg_match('/(options|opciones|settings|config)/i', $fieldName)) {
-                    return "json_encode(['enabled' => ".($isUpdate ? 'false' : 'true').", 'value' => '".($isUpdate ? 'updated' : 'default')."'])";
+                    return "json_encode(['enabled' => " . ($isUpdate ? 'false' : 'true') . ", 'value' => '" . ($isUpdate ? 'updated' : 'default') . "'])";
                 } else {
-                    return "json_encode(['test' => '".($isUpdate ? 'updated' : 'value')."'])";
+                    return "json_encode(['test' => '" . ($isUpdate ? 'updated' : 'value') . "'])";
                 }
 
             case 'uuid':
-                return '$this->faker->uuid()';
+                return "\$this->faker->uuid()";
 
             case 'ipaddress':
-                return "'".long2ip(rand(0, 4294967295))."'";
+                return "'" . long2ip(rand(0, 4294967295)) . "'";
 
             case 'macaddress':
                 $mac = [];
@@ -1793,18 +1803,18 @@ EOT;
                     $mac[] = sprintf('%02X', rand(0, 255));
                 }
 
-                return "'".implode(':', $mac)."'";
+                return "'" . implode(':', $mac) . "'";
 
             case 'enum':
                 // Para enumeraciones, intentar detectar tipos comunes
                 if (preg_match('/(status|estado)/i', $fieldName)) {
-                    return "'".($isUpdate ? 'inactive' : 'active')."'";
+                    return "'" . ($isUpdate ? 'inactive' : 'active') . "'";
                 } elseif (preg_match('/(gender|genero)/i', $fieldName)) {
-                    return "'".($isUpdate ? 'female' : 'male')."'";
+                    return "'" . ($isUpdate ? 'female' : 'male') . "'";
                 } elseif (preg_match('/(type|tipo)/i', $fieldName)) {
-                    return "'".($isUpdate ? 'secondary' : 'primary')."'";
+                    return "'" . ($isUpdate ? 'secondary' : 'primary') . "'";
                 } else {
-                    return "'option".($isUpdate ? '2' : '1')."'";
+                    return "'option" . ($isUpdate ? '2' : '1') . "'";
                 }
 
             case 'foreignid':
