@@ -845,7 +845,7 @@ EOT;
             file_put_contents($apiRoutesPath, $apiRoutesContent);
             $this->info('Archivos de ruta formateados correctamente.');
         } catch (\Exception $e) {
-            $this->warn('No se pudieron formatear los archivos de ruta automáticamente.');
+            $this->warn('No se pudieron formatear los archivos de ruta automáticamente: ' . $e->getMessage());
         }
     }
 
