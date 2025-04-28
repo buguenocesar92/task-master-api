@@ -9,7 +9,7 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_basic_assertion(): void
+    public function testBasicAssertion(): void
     {
         $value = 1 + 1;
         $this->assertEquals(2, $value);
