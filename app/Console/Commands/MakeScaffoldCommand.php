@@ -1154,7 +1154,7 @@ EOT;
         }
 
         // Test para el controlador
-        $controllerTestPath = $testsDir . "/{$name}ControllerTest.php";
+        $controllerTestPath = $testsDir."/{$name}ControllerTest.php";
 
         if (! file_exists($controllerTestPath)) {
             $controllerTestContent = $this->generateControllerTest($name, $prefix, $fields);
@@ -1168,7 +1168,7 @@ EOT;
             mkdir($testsDir, 0755, true);
         }
 
-        $serviceTestPath = $testsDir . "/{$name}ServiceTest.php";
+        $serviceTestPath = $testsDir."/{$name}ServiceTest.php";
 
         if (! file_exists($serviceTestPath)) {
             $serviceTestContent = $this->generateServiceTest($name, $fields);
@@ -1177,7 +1177,7 @@ EOT;
         }
 
         // Test para el repositorio
-        $repositoryTestPath = $testsDir . "/{$name}RepositoryTest.php";
+        $repositoryTestPath = $testsDir."/{$name}RepositoryTest.php";
 
         if (! file_exists($repositoryTestPath)) {
             $repositoryTestContent = $this->generateRepositoryTest($name, $fields);
@@ -1708,17 +1708,17 @@ EOT;
                 } elseif (preg_match('/(phone|telefono|celular|mobile)/i', $fieldName)) {
                     return "'555-".rand(1000, 9999)."'";
                 } elseif (preg_match('/(url|link|enlace)/i', $fieldName)) {
-                    return "'https://example.com/$prefix" . "test'";
+                    return "'https://example.com/$prefix"."test'";
                 } elseif (preg_match('/(code|codigo)/i', $fieldName)) {
-                    return "'$prefix" . strtoupper(substr(md5((string) rand()), 0, 8)) . "'";
+                    return "'$prefix".strtoupper(substr(md5((string) rand()), 0, 8))."'";
                 } else {
-                    return "'$prefix" . 'test_' . $fieldName . "'";
+                    return "'$prefix".'test_'.$fieldName."'";
                 }
 
             case 'text':
             case 'longtext':
             case 'mediumtext':
-                return "'$prefix" . 'This is a test text for ' . $fieldName . "'";
+                return "'$prefix".'This is a test text for '.$fieldName."'";
 
             case 'integer':
             case 'biginteger':
@@ -1776,9 +1776,9 @@ EOT;
             case 'json':
             case 'jsonb':
                 if (preg_match('/(options|opciones|settings|config)/i', $fieldName)) {
-                    return "json_encode(['enabled' => " . ($isUpdate ? 'false' : 'true') . ", 'value' => '" . ($isUpdate ? 'updated' : 'default') . "'])";
+                    return "json_encode(['enabled' => ".($isUpdate ? 'false' : 'true').", 'value' => '".($isUpdate ? 'updated' : 'default')."'])";
                 } else {
-                    return "json_encode(['test' => '" . ($isUpdate ? 'updated' : 'value') . "'])";
+                    return "json_encode(['test' => '".($isUpdate ? 'updated' : 'value')."'])";
                 }
 
             case 'uuid':
