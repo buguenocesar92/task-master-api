@@ -585,7 +585,7 @@ EOT;
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
             if (strpos($mainRoutesContent, $requireLine) === false && strpos($mainRoutesContent, "require __DIR__.'/api/{$prefix}.php';") === false) {
-                file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
+                file_put_contents($mainRoutesPath, "\n".$requireLine, FILE_APPEND);
                 $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
             }
         }
