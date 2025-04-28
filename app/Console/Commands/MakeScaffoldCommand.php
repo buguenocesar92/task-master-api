@@ -105,7 +105,7 @@ class MakeScaffoldCommand extends Command
 
             // Generar array de campos fillable
             $fillableFields = array_keys($fields);
-            $fillableString = "'".implode("', '", $fillableFields)."'";
+            $fillableString = "'" . implode("', '", $fillableFields) . "'";
 
             // Generar PHPDoc para las propiedades
             $phpDocProperties = [];
@@ -126,7 +126,7 @@ class MakeScaffoldCommand extends Command
             if (strpos($modelContent, 'protected $fillable') === false) {
                 // Add PHPDoc
                 $modelContent = preg_replace(
-                    '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
+                    '/(class\s+' . $name . '\s+extends\s+\S+\s*\{)/',
                     "$phpDocString\n$1",
                     $modelContent
                 );
@@ -134,7 +134,7 @@ class MakeScaffoldCommand extends Command
                 // Añadir el trait HasFactory si no existe ya
                 if (strpos($modelContent, 'use HasFactory') === false) {
                     $modelContent = preg_replace(
-                        '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
+                        '/(class\s+' . $name . '\s+extends\s+\S+\s*\{)/',
                         "$1\n    use HasFactory;",
                         $modelContent
                     );
@@ -150,11 +150,11 @@ class MakeScaffoldCommand extends Command
                 // Añadir métodos de relaciones si existen
                 if (! empty($relations)) {
                     $relationsCode = $this->generateModelRelationsCode($relations);
-                    $modelContent = str_replace('}', $relationsCode."\n}", $modelContent);
+                    $modelContent = str_replace('}', $relationsCode . "\n}", $modelContent);
                 }
 
                 file_put_contents($modelPath, $modelContent);
-                $this->info("Modelo {$name} actualizado con fillable".(! empty($relations) ? ' y relaciones' : '').'.');
+                $this->info("Modelo {$name} actualizado con fillable" . (! empty($relations) ? ' y relaciones' : '') . '.');
             }
         } else {
             $this->error("No se encontró el modelo {$name}.");
@@ -571,7 +571,7 @@ Route::group(['prefix' => '{$prefix}'], function () {
 EOT;
 
         // Opción 1: Crear un archivo de rutas separado
-        $routesFilePath = $apiDir.'/'.$prefix.'.php';
+        $routesFilePath = $apiDir . '/' . $prefix . '.php';
 
         if (file_exists($routesFilePath)) {
             $this->error("El archivo de rutas {$routesFilePath} ya existe. No se sobrescribirá.");
@@ -587,7 +587,7 @@ EOT;
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
             if (strpos($mainRoutesContent, $requireLine) === false && strpos($mainRoutesContent, "require __DIR__.'/api/{$prefix}.php';") === false) {
-                file_put_contents($mainRoutesPath, "\n".$requireLine, FILE_APPEND);
+                file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
                 $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
             }
         }
@@ -673,8 +673,8 @@ EOT;
         if (! is_dir($requestDir)) {
             mkdir($requestDir, 0755, true);
         }
-        $storeRequestPath = $requestDir."/Store{$name}Request.php";
-        $updateRequestPath = $requestDir."/Update{$name}Request.php";
+        $storeRequestPath = $requestDir . "/Store{$name}Request.php";
+        $updateRequestPath = $requestDir . "/Update{$name}Request.php";
 
         if (file_exists($storeRequestPath) || file_exists($updateRequestPath)) {
             $this->error("Las requests para {$name} ya existen.");
@@ -962,16 +962,16 @@ EOT;
                 } elseif (in_array($field['type'], ['float', 'double', 'decimal'])) {
                     $default = (float) $default;
                 } elseif ($field['type'] === 'json') {
-                    $default = "'".json_encode($default)."'";
+                    $default = "'" . json_encode($default) . "'";
                 } elseif (in_array($field['type'], ['string', 'text'])) {
-                    $default = "'".$default."'";
+                    $default = "'" . $default . "'";
                 }
 
                 $line .= "->default({$default})";
             }
 
             $line .= ';';
-            $code .= $line."\n";
+            $code .= $line . "\n";
         }
 
         return $code;
@@ -1015,7 +1015,7 @@ EOT;
             $code .= "\n{$indent}/**\n";
             $code .= "{$indent} * Relación con {$relatedModel}.\n";
             $code .= "{$indent} *\n";
-            $code .= "{$indent} * @return \\Illuminate\\Database\\Eloquent\\Relations\\".ucfirst($relationType)."\n";
+            $code .= "{$indent} * @return \\Illuminate\\Database\\Eloquent\\Relations\\" . ucfirst($relationType) . "\n";
             $code .= "{$indent} */\n";
             $code .= "{$indent}public function {$methodName}()\n";
             $code .= "{$indent}{\n";
@@ -1094,7 +1094,7 @@ EOT;
                     break;
             }
 
-            $rules[] = "{$indent}'{$name}' => '".implode('|', $fieldRules)."',";
+            $rules[] = "{$indent}'{$name}' => '" . implode('|', $fieldRules) . "',";
         }
 
         return implode("\n", $rules);
@@ -1206,7 +1206,7 @@ EOT;
         }
 
         // Test para el controlador
-        $controllerTestPath = $testsDir."/{$name}ControllerTest.php";
+        $controllerTestPath = $testsDir . "/{$name}ControllerTest.php";
 
         if (! file_exists($controllerTestPath)) {
             $controllerTestContent = $this->generateControllerTest($name, $prefix, $fields);
@@ -1220,7 +1220,7 @@ EOT;
             mkdir($testsDir, 0755, true);
         }
 
-        $serviceTestPath = $testsDir."/{$name}ServiceTest.php";
+        $serviceTestPath = $testsDir . "/{$name}ServiceTest.php";
 
         if (! file_exists($serviceTestPath)) {
             $serviceTestContent = $this->generateServiceTest($name, $fields);
@@ -1229,7 +1229,7 @@ EOT;
         }
 
         // Test para el repositorio
-        $repositoryTestPath = $testsDir."/{$name}RepositoryTest.php";
+        $repositoryTestPath = $testsDir . "/{$name}RepositoryTest.php";
 
         if (! file_exists($repositoryTestPath)) {
             $repositoryTestContent = $this->generateRepositoryTest($name, $fields);
@@ -1729,7 +1729,7 @@ EOT;
 
         return empty($testData)
             ? '[]'
-            : "[\n            ".implode(",\n            ", $testData)."\n        ]";
+            : "[\n            " . implode(",\n            ", $testData) . "\n        ]";
     }
 
     /**
@@ -1748,29 +1748,29 @@ EOT;
             case 'string':
                 // Intentar detectar algunos campos comunes y generar valores apropiados
                 if (preg_match('/(email|correo)/i', $fieldName)) {
-                    return "'".$prefix."test@example.com'";
+                    return "'" . $prefix . "test@example.com'";
                 } elseif (preg_match('/(name|nombre|titulo|title)/i', $fieldName)) {
-                    return "'".$prefix."Test Name'";
+                    return "'" . $prefix . "Test Name'";
                 } elseif (preg_match('/(password|contraseña|clave)/i', $fieldName)) {
                     return "bcrypt('password')";
                 } elseif (preg_match('/(description|descripcion|detalle|detail)/i', $fieldName)) {
-                    return "'".$prefix."Test Description'";
+                    return "'" . $prefix . "Test Description'";
                 } elseif (preg_match('/(address|direccion)/i', $fieldName)) {
-                    return "'".$prefix."123 Test Street'";
+                    return "'" . $prefix . "123 Test Street'";
                 } elseif (preg_match('/(phone|telefono|celular|mobile)/i', $fieldName)) {
-                    return "'555-".rand(1000, 9999)."'";
+                    return "'555-" . rand(1000, 9999) . "'";
                 } elseif (preg_match('/(url|link|enlace)/i', $fieldName)) {
-                    return "'https://example.com/".$prefix."test'";
+                    return "'https://example.com/" . $prefix . "test'";
                 } elseif (preg_match('/(code|codigo)/i', $fieldName)) {
-                    return "'".$prefix.strtoupper(substr(md5((string) rand()), 0, 8))."'";
+                    return "'" . $prefix . strtoupper(substr(md5((string) rand()), 0, 8)) . "'";
                 } else {
-                    return "'".$prefix.'test_'.$fieldName."'";
+                    return "'" . $prefix . 'test_' . $fieldName . "'";
                 }
 
             case 'text':
             case 'longtext':
             case 'mediumtext':
-                return "'".$prefix.'This is a test text for '.$fieldName."'";
+                return "'" . $prefix . 'This is a test text for ' . $fieldName . "'";
 
             case 'integer':
             case 'biginteger':
@@ -1813,14 +1813,14 @@ EOT;
                 return $isUpdate ? 'false' : 'true';
 
             case 'date':
-                return "'".date('Y-m-d', strtotime(($isUpdate ? '+1 week' : 'now')))."'";
+                return "'" . date('Y-m-d', strtotime(($isUpdate ? '+1 week' : 'now'))) . "'";
 
             case 'datetime':
             case 'timestamp':
-                return "'".date('Y-m-d H:i:s', strtotime(($isUpdate ? '+1 week' : 'now')))."'";
+                return "'" . date('Y-m-d H:i:s', strtotime(($isUpdate ? '+1 week' : 'now'))) . "'";
 
             case 'time':
-                return "'".date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now')))."'";
+                return "'" . date('H:i:s', strtotime(($isUpdate ? '+1 hour' : 'now'))) . "'";
 
             case 'year':
                 return (string) ($isUpdate ? (date('Y') + 1) : date('Y'));
@@ -1828,16 +1828,16 @@ EOT;
             case 'json':
             case 'jsonb':
                 if (preg_match('/(options|opciones|settings|config)/i', $fieldName)) {
-                    return "json_encode(['enabled' => ".($isUpdate ? 'false' : 'true').", 'value' => '".($isUpdate ? 'updated' : 'default')."'])";
+                    return "json_encode(['enabled' => " . ($isUpdate ? 'false' : 'true') . ", 'value' => '" . ($isUpdate ? 'updated' : 'default') . "'])";
                 } else {
-                    return "json_encode(['test' => '".($isUpdate ? 'updated' : 'value')."'])";
+                    return "json_encode(['test' => '" . ($isUpdate ? 'updated' : 'value') . "'])";
                 }
 
             case 'uuid':
                 return '$this->faker->uuid()';
 
             case 'ipaddress':
-                return "'".long2ip(rand(0, 4294967295))."'";
+                return "'" . long2ip(rand(0, 4294967295)) . "'";
 
             case 'macaddress':
                 $mac = [];
@@ -1845,18 +1845,18 @@ EOT;
                     $mac[] = sprintf('%02X', rand(0, 255));
                 }
 
-                return "'".implode(':', $mac)."'";
+                return "'" . implode(':', $mac) . "'";
 
             case 'enum':
                 // Para enumeraciones, intentar detectar tipos comunes
                 if (preg_match('/(status|estado)/i', $fieldName)) {
-                    return "'".($isUpdate ? 'inactive' : 'active')."'";
+                    return "'" . ($isUpdate ? 'inactive' : 'active') . "'";
                 } elseif (preg_match('/(gender|genero)/i', $fieldName)) {
-                    return "'".($isUpdate ? 'female' : 'male')."'";
+                    return "'" . ($isUpdate ? 'female' : 'male') . "'";
                 } elseif (preg_match('/(type|tipo)/i', $fieldName)) {
-                    return "'".($isUpdate ? 'secondary' : 'primary')."'";
+                    return "'" . ($isUpdate ? 'secondary' : 'primary') . "'";
                 } else {
-                    return "'option".($isUpdate ? '2' : '1')."'";
+                    return "'option" . ($isUpdate ? '2' : '1') . "'";
                 }
 
             case 'foreignid':
@@ -1867,7 +1867,7 @@ EOT;
 
             default:
                 // Para tipos desconocidos, devolver un string genérico
-                return "'$prefix"."test_value'";
+                return "'$prefix" . "test_value'";
         }
     }
 
