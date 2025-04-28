@@ -582,6 +582,8 @@ EOT;
             // Actualizar el archivo routes/api.php para incluir las rutas generadas
             $mainRoutesPath = base_path('routes/api.php');
             $mainRoutesContent = file_get_contents($mainRoutesPath);
+
+            // Definir siempre el require con el formato correcto
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
             if (strpos($mainRoutesContent, $requireLine) === false && strpos($mainRoutesContent, "require __DIR__.'/api/{$prefix}.php';") === false) {
@@ -828,12 +830,22 @@ EOT;
 
         // Asegurar que el archivo routes/api.php tenga el formato correcto
         $this->info('Corrigiendo formato de archivos de ruta...');
-        if (file_exists(base_path('vendor/bin/phpcbf'))) {
+        try {
+            // Corregir manualmente el archivo de rutas para tener el formato correcto
             $apiRoutesPath = base_path('routes/api.php');
-            system(base_path('vendor/bin/phpcbf').' --standard=PSR12 '.$apiRoutesPath, $exitCodePhp);
-            if ($exitCodePhp <= 1) { // phpcbf returns 1 when fixed, 0 when nothing to fix
-                $this->info('Archivos de ruta formateados correctamente.');
-            }
+            $apiRoutesContent = file_get_contents($apiRoutesPath);
+
+            // Buscar y reemplazar el patrón sin espacios
+            $apiRoutesContent = str_replace(
+                "require __DIR__.'/api/",
+                "require __DIR__ . '/api/",
+                $apiRoutesContent
+            );
+
+            file_put_contents($apiRoutesPath, $apiRoutesContent);
+            $this->info('Archivos de ruta formateados correctamente.');
+        } catch (\Exception $e) {
+            $this->warn('No se pudieron formatear los archivos de ruta automáticamente.');
         }
     }
 
