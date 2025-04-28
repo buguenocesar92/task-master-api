@@ -1,23 +1,21 @@
 <?xml version="1.0"?>
 <ruleset name="Laravel Standards">
-    <description>PSR-12 Code Standard</description>
+    <description>The Laravel Coding Standards</description>
 
     <file>app</file>
+    <file>config</file>
+    <file>database</file>
     <file>routes</file>
     <file>tests</file>
 
-    <exclude-pattern>*/database/*</exclude-pattern>
-    <exclude-pattern>*/cache/*</exclude-pattern>
+    <exclude-pattern>*/app/Console/Commands/MakeScaffoldCommand.php</exclude-pattern>
     <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/database/migrations/*</exclude-pattern>
     <exclude-pattern>*/storage/*</exclude-pattern>
-    <exclude-pattern>*/node_modules/*</exclude-pattern>
-    <exclude-pattern>*/config/*</exclude-pattern>
+    <exclude-pattern>*/bootstrap/cache/*</exclude-pattern>
 
     <arg name="colors"/>
     <arg value="p"/>
 
-    <rule ref="PSR12">
-        <exclude name="PSR1.Methods.CamelCapsMethodName.NotCamelCaps"/>
-        <exclude name="Squiz.Strings.ConcatenationSpacing"/>
-    </rule>
+    <rule ref="PSR2"/>
 </ruleset>
