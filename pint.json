@@ -11,6 +11,9 @@
         "not_operator_with_successor_space": true,
         "phpdoc_scalar": true,
         "phpdoc_var_without_name": true,
-        "unary_operator_spaces": true
+        "unary_operator_spaces": true,
+        "concat_space": {
+            "spacing": "one"
+        }
     }
 }
