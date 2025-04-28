@@ -571,7 +571,7 @@ Route::group(['prefix' => '{$prefix}'], function () {
 EOT;
 
         // Opción 1: Crear un archivo de rutas separado
-        $routesFilePath = $apiDir . '/' . $prefix . '.php';
+        $routesFilePath = $apiDir.'/'.$prefix.'.php';
 
         if (file_exists($routesFilePath)) {
             $this->error("El archivo de rutas {$routesFilePath} ya existe. No se sobrescribirá.");
