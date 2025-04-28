@@ -15,7 +15,7 @@ class RegistrationTest extends TestCase
     /**
      * Test user can register with valid data
      */
-    public function test_user_can_register_with_valid_data(): void
+    public function testUserCanRegisterWithValidData(): void
     {
         $userData = [
             'name' => $this->faker->name,
@@ -46,7 +46,7 @@ class RegistrationTest extends TestCase
     /**
      * Test registration validation for required fields
      */
-    public function test_registration_requires_all_fields(): void
+    public function testRegistrationRequiresAllFields(): void
     {
         $response = $this->postJson('/api/auth/register', []);
 
@@ -57,7 +57,7 @@ class RegistrationTest extends TestCase
     /**
      * Test password confirmation validation
      */
-    public function test_registration_requires_password_confirmation(): void
+    public function testRegistrationRequiresPasswordConfirmation(): void
     {
         $userData = [
             'name' => $this->faker->name,
@@ -75,7 +75,7 @@ class RegistrationTest extends TestCase
     /**
      * Test email must be unique
      */
-    public function test_registration_requires_unique_email(): void
+    public function testRegistrationRequiresUniqueEmail(): void
     {
         // Create a user
         /** @var User $user */
