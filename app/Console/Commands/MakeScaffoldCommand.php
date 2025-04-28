@@ -124,10 +124,26 @@ class MakeScaffoldCommand extends Command
             $phpDocString = implode("\n", $phpDocProperties);
 
             if (strpos($modelContent, 'protected $fillable') === false) {
-                // Add PHPDoc and fillable
+                // Add PHPDoc
                 $modelContent = preg_replace(
                     '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
-                    "$phpDocString\n$1\n    use HasFactory;\n\n    protected \$fillable = [{$fillableString}];",
+                    "$phpDocString\n$1",
+                    $modelContent
+                );
+
+                // Añadir el trait HasFactory si no existe ya
+                if (strpos($modelContent, 'use HasFactory') === false) {
+                    $modelContent = preg_replace(
+                        '/(class\s+'.$name.'\s+extends\s+\S+\s*\{)/',
+                        "$1\n    use HasFactory;",
+                        $modelContent
+                    );
+                }
+
+                // Añadir fillable
+                $modelContent = preg_replace(
+                    '/(use HasFactory;)/',
+                    "$1\n\n    protected \$fillable = [{$fillableString}];",
                     $modelContent
                 );
 
@@ -555,7 +571,7 @@ Route::group(['prefix' => '{$prefix}'], function () {
 EOT;
 
         // Opción 1: Crear un archivo de rutas separado
-        $routesFilePath = $apiDir.'/'.$prefix.'.php';
+        $routesFilePath = $apiDir . '/' . $prefix . '.php';
 
         if (file_exists($routesFilePath)) {
             $this->error("El archivo de rutas {$routesFilePath} ya existe. No se sobrescribirá.");
@@ -569,7 +585,7 @@ EOT;
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
             if (strpos($mainRoutesContent, $requireLine) === false) {
-                file_put_contents($mainRoutesPath, "\n".$requireLine, FILE_APPEND);
+                file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
                 $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
             }
         }
@@ -976,7 +992,7 @@ EOT;
             $code .= "\n{$indent}/**\n";
             $code .= "{$indent} * Relación con {$relatedModel}.\n";
             $code .= "{$indent} *\n";
-            $code .= "{$indent} * @return \\Illuminate\\Database\\Eloquent\\Relations\\" . ucfirst($relationType) . "\n";
+            $code .= "{$indent} * @return \\Illuminate\\Database\\Eloquent\\Relations\\".ucfirst($relationType)."\n";
             $code .= "{$indent} */\n";
             $code .= "{$indent}public function {$methodName}()\n";
             $code .= "{$indent}{\n";
