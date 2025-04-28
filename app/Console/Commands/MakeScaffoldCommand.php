@@ -1294,7 +1294,7 @@ class {$name}ControllerTest extends TestCase
     /**
      * Test de listado de {$name}.
      */
-    public function test_index(): void
+    public function testIndex(): void
     {
         // Verificar que el modelo exista
         if (!class_exists({$name}::class)) {
@@ -1318,7 +1318,7 @@ class {$name}ControllerTest extends TestCase
     /**
      * Test de creación de {$name}.
      */
-    public function test_store(): void
+    public function testStore(): void
     {
         // Datos para el nuevo registro
         \$data = {$testData};
@@ -1336,7 +1336,7 @@ class {$name}ControllerTest extends TestCase
     /**
      * Test de mostrar un {$name}.
      */
-    public function test_show(): void
+    public function testShow(): void
     {
         // Verificar que el modelo exista
         if (!class_exists({$name}::class)) {
@@ -1358,7 +1358,7 @@ class {$name}ControllerTest extends TestCase
     /**
      * Test de actualización de {$name}.
      */
-    public function test_update(): void
+    public function testUpdate(): void
     {
         // Verificar que el modelo exista
         if (!class_exists({$name}::class)) {
@@ -1391,7 +1391,7 @@ class {$name}ControllerTest extends TestCase
     /**
      * Test de eliminación de {$name}.
      */
-    public function test_destroy(): void
+    public function testDestroy(): void
     {
         // Verificar que el modelo exista
         if (!class_exists({$name}::class)) {
@@ -1463,7 +1463,7 @@ class {$name}ServiceTest extends TestCase
     /**
      * Test obtener todos los {$lowercaseName}.
      */
-    public function test_get_all(): void
+    public function testGetAll(): void
     {
         // Crear algunos registros con datos válidos
         \$data = {$testData};
@@ -1483,7 +1483,7 @@ class {$name}ServiceTest extends TestCase
     /**
      * Test buscar por ID.
      */
-    public function test_find_by_id(): void
+    public function testFindById(): void
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
@@ -1500,7 +1500,7 @@ class {$name}ServiceTest extends TestCase
     /**
      * Test crear.
      */
-    public function test_create(): void
+    public function testCreate(): void
     {
         // Datos para crear
         \$data = {$testData};
@@ -1516,7 +1516,7 @@ class {$name}ServiceTest extends TestCase
     /**
      * Test actualizar.
      */
-    public function test_update(): void
+    public function testUpdate(): void
     {
         // Crear un registro con datos válidos
         \$originalData = {$testData};
@@ -1544,7 +1544,7 @@ class {$name}ServiceTest extends TestCase
     /**
      * Test eliminar.
      */
-    public function test_delete(): void
+    public function testDelete(): void
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
@@ -1604,7 +1604,7 @@ class {$name}RepositoryTest extends TestCase
     /**
      * Test obtener todos los {$lowercaseName}.
      */
-    public function test_get_all(): void
+    public function testGetAll(): void
     {
         // Crear algunos registros con datos válidos
         \$data = {$testData};
@@ -1624,7 +1624,7 @@ class {$name}RepositoryTest extends TestCase
     /**
      * Test buscar por ID.
      */
-    public function test_find_by_id(): void
+    public function testFindById(): void
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
@@ -1641,7 +1641,7 @@ class {$name}RepositoryTest extends TestCase
     /**
      * Test crear.
      */
-    public function test_create(): void
+    public function testCreate(): void
     {
         // Datos para crear
         \$data = {$testData};
@@ -1657,7 +1657,7 @@ class {$name}RepositoryTest extends TestCase
     /**
      * Test actualizar.
      */
-    public function test_update(): void
+    public function testUpdate(): void
     {
         // Crear un registro con datos válidos
         \$originalData = {$testData};
@@ -1685,7 +1685,7 @@ class {$name}RepositoryTest extends TestCase
     /**
      * Test eliminar.
      */
-    public function test_delete(): void
+    public function testDelete(): void
     {
         // Crear un registro con datos válidos
         \$data = {$testData};
