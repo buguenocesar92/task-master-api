@@ -585,7 +585,7 @@ EOT;
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
             if (strpos($mainRoutesContent, $requireLine) === false && strpos($mainRoutesContent, "require __DIR__.'/api/{$prefix}.php';") === false) {
-                file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
+                file_put_contents($mainRoutesPath, "\n".$requireLine, FILE_APPEND);
                 $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
             }
         }
@@ -824,6 +824,16 @@ EOT;
             }
         } else {
             $this->warn('Laravel Pint no está instalado. Ejecute "composer lint:fix" manualmente para formatear el código.');
+        }
+
+        // Asegurar que el archivo routes/api.php tenga el formato correcto
+        $this->info('Corrigiendo formato de archivos de ruta...');
+        if (file_exists(base_path('vendor/bin/phpcbf'))) {
+            $apiRoutesPath = base_path('routes/api.php');
+            system(base_path('vendor/bin/phpcbf') . ' --standard=PSR12 ' . $apiRoutesPath, $exitCodePhp);
+            if ($exitCodePhp <= 1) { // phpcbf returns 1 when fixed, 0 when nothing to fix
+                $this->info('Archivos de ruta formateados correctamente.');
+            }
         }
     }
 
