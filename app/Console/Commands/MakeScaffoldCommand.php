@@ -584,7 +584,7 @@ EOT;
             $mainRoutesContent = file_get_contents($mainRoutesPath);
             $requireLine = "require __DIR__ . '/api/{$prefix}.php';";
 
-            if (strpos($mainRoutesContent, $requireLine) === false) {
+            if (strpos($mainRoutesContent, $requireLine) === false && strpos($mainRoutesContent, "require __DIR__.'/api/{$prefix}.php';") === false) {
                 file_put_contents($mainRoutesPath, "\n" . $requireLine, FILE_APPEND);
                 $this->info("Se ha actualizado routes/api.php para incluir {$prefix}.php.");
             }
@@ -615,6 +615,7 @@ EOT;
         // Agregar las rutas directamente a api.php si no existen ya
         // (priorizar este método para mayor compatibilidad con los tests)
         if (strpos($mainRoutesContent, "// Rutas para {$name}") === false) {
+            // Si ya existía un require pero no las rutas directas, añadir solo las rutas
             file_put_contents($mainRoutesPath, $inlineRoutesContent, FILE_APPEND);
             $this->info('Se han añadido rutas directamente en api.php para mayor compatibilidad.');
         }
