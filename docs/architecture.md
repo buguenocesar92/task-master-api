@@ -1,4 +1,23 @@
-# Arquitectura del Proyecto
+# Arquitectura de Task Master
+
+## Enfoque API-first
+
+Task Master sigue un enfoque "API-first" para su arquitectura, lo que significa que:
+
+1. **Una única API centralizada**: Desarrollamos una API REST completa que sirve tanto al frontend del cliente como al panel de administración.
+2. **Separación de responsabilidades**: La API se encarga de toda la lógica de negocio, validaciones y acceso a datos.
+3. **Frontends como consumidores**: Todas las interfaces de usuario (cliente web, panel admin, posibles apps móviles futuras) consumen la misma API.
+4. **Control de acceso centralizado**: La API implementa autorización basada en roles y permisos para distinguir entre usuarios regulares y administradores.
+
+### Beneficios de este enfoque
+
+- Eliminación de duplicación de código y lógica de negocio
+- Consistencia garantizada en todas las plataformas
+- Facilidad para integrar nuevas interfaces en el futuro
+- Mantenimiento simplificado (cambios en la lógica se hacen en un solo lugar)
+- Mejor testabilidad de la lógica de negocio
+
+## Estructura de la aplicación
 
 ## Diagrama de Arquitectura
 [Se incluirá diagrama de arquitectura]

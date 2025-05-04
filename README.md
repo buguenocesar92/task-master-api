@@ -2,6 +2,14 @@
 
 Backend API para la aplicación Task Master, desarrollado con Laravel, siguiendo principios de Clean Architecture y TDD.
 
+## Enfoque arquitectónico
+
+Task Master implementa un enfoque "API-first", donde esta API proporciona toda la lógica de negocio tanto para la interfaz de cliente como para el panel de administración, evitando duplicación de código y asegurando consistencia en toda la plataforma. [Más detalles en nuestra documentación de arquitectura](docs/architecture.md).
+
+## Modelo de datos
+
+El sistema utiliza un modelo de datos relacional robusto, diseñado para soportar todas las funcionalidades del e-commerce con entidades como usuarios, productos, categorías, carritos, pedidos y más. [Ver documentación completa del modelo](docs/database-model.md).
+
 ## Características
 
 - API RESTful con Laravel
