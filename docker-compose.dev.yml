@@ -12,6 +12,7 @@ services:
       - .:/var/www/html    # Montar todo el directorio para desarrollo en tiempo real
     networks:
       - laravel-network
+      - elk_network     # Añadir la red de ELK
     depends_on:
       - postgres
       - redis
@@ -29,6 +30,12 @@ services:
       DB_PASSWORD: "postgres"
 
       REDIS_HOST: "redis"
+
+      # Configuración para ELK
+      LOG_CHANNEL: "stack"
+      LOG_STACK: "single,logstash"
+      LOGSTASH_HOST: "logstash-dev"   # Nombre del contenedor logstash
+      LOGSTASH_PORT: "5000"
 
   # Nginx Web Server
   nginx:
@@ -92,3 +99,6 @@ volumes:
 networks:
   laravel-network:
     driver: bridge
+  elk_network:
+    external: true
+    name: elk_network  # Debe coincidir con el nombre definido en el docker-compose.dev.yml de ELK

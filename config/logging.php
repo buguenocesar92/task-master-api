@@ -118,6 +118,21 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'logstash' => [
+            'driver' => 'monolog',
+            'handler' => Monolog\Handler\SocketHandler::class,
+            'handler_with' => [
+                'connection_string' => 'tcp://logstash-dev:5000',
+                'timeout' => 0.25,
+            ],
+            'formatter' => Monolog\Formatter\LogstashFormatter::class,
+            'formatter_with' => [
+                'application' => env('APP_NAME', 'laravel'),
+                'system' => env('APP_ENV', 'local'),
+            ],
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
