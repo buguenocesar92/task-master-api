@@ -4,6 +4,7 @@ use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
+use Monolog\Formatter\JsonFormatter;
 
 return [
 
@@ -123,12 +124,12 @@ return [
             'handler' => Monolog\Handler\SocketHandler::class,
             'handler_with' => [
                 'connection_string' => 'tcp://logstash-dev:5000',
-                'timeout' => 0.25,
+                'timeout' => 2.0,
             ],
-            'formatter' => Monolog\Formatter\LogstashFormatter::class,
+            'formatter' => Monolog\Formatter\JsonFormatter::class,
             'formatter_with' => [
-                'application' => env('APP_NAME', 'laravel'),
-                'system' => env('APP_ENV', 'local'),
+                'batchMode' => JsonFormatter::BATCH_MODE_NEWLINES,
+                'appendNewline' => true,
             ],
             'level' => env('LOG_LEVEL', 'debug'),
         ],

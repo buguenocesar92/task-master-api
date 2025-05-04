@@ -185,3 +185,23 @@ Utilizamos GitHub Actions para nuestro pipeline de CI/CD:
 ## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
+
+## Sistema de Logging Centralizado
+
+Esta aplicación utiliza un sistema de logging centralizado basado en la stack ELK (Elasticsearch, Logstash, Kibana) para monitorear la actividad y detectar problemas.
+
+### Cómo usar el sistema de logs
+
+Para enviar logs al sistema centralizado, utiliza el `LogHelper`:
+
+```php
+use App\Helpers\LogHelper;
+
+// Log informativo
+LogHelper::toLogstash('Acción completada', ['data' => $datos]);
+
+// Log de error
+LogHelper::toLogstash('Error en proceso', ['error' => $excepcion->getMessage()], 'error');
+```
+
+Para más detalles, consulta la [documentación completa del sistema de logging](docs/logging.md).
