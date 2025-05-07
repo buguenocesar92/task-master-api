@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -38,11 +39,25 @@ class LogHelper
     public static function toLogstash($message, array $context = [], $level = 'info')
     {
         try {
-            $socket = @fsockopen('tcp://logstash-dev', 5000, $errno, $errstr, 3);
-            if (! $socket) {
-                Log::error("Error al conectar a Logstash: $errstr ($errno)");
+            // Obtenemos la configuración de conexión de Logstash desde el archivo de configuración
+            $connectionString = Config::get('logging.channels.logstash.handler_with.connectionString');
+            $timeout = Config::get('logging.channels.logstash.handler_with.timeout', 0.5);
 
-                return false;
+            // Parsear la dirección de conexión
+            $parts = parse_url($connectionString);
+            if (!$parts || !isset($parts['host']) || !isset($parts['port'])) {
+                Log::error("Configuración de conexión a Logstash inválida: $connectionString");
+                return self::fallbackLog($message, $context, $level);
+            }
+
+            $host = $parts['host'];
+            $port = $parts['port'];
+
+            // Intentar conexión con timeout reducido
+            $socket = @fsockopen('tcp://' . $host, $port, $errno, $errstr, $timeout);
+            if (!$socket) {
+                Log::warning("Error al conectar a Logstash ($host:$port): $errstr ($errno)");
+                return self::fallbackLog($message, $context, $level);
             }
 
             $payload = [
@@ -50,6 +65,8 @@ class LogHelper
                 '@timestamp' => date('c'),
                 'level' => $level,
                 'context' => $context,
+                'app' => config('app.name', 'Laravel'),
+                'env' => config('app.env', 'production'),
             ];
 
             fwrite($socket, json_encode($payload) . "\n");
@@ -58,8 +75,25 @@ class LogHelper
             return true;
         } catch (\Exception $e) {
             Log::error('Error al enviar log a Logstash: ' . $e->getMessage());
-
-            return false;
+            return self::fallbackLog($message, $context, $level);
         }
     }
+
+    /**
+     * Método de respaldo para guardar logs cuando Logstash no está disponible
+     */
+    private static function fallbackLog($message, array $context, $level)
+    {
+        // Aseguramos que el nivel sea válido
+        if (!in_array($level, ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'])) {
+            $level = 'info';
+        }
+
+        // Usar el logger de Laravel (usualmente single o daily)
+        Log::$level($message, $context);
+
+        // Retornamos true para no interrumpir el flujo de la aplicación
+        return true;
+    }
 }
+
