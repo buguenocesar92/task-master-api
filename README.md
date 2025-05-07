@@ -115,7 +115,12 @@ php artisan migrate
 
 # Generar documentación API
 php artisan l5-swagger:generate
+
+# Generar estructura CRUD completa para una entidad
+php artisan make:scaffold {nombre} [opciones]
 ```
+
+Para más detalles sobre el uso del comando `make:scaffold`, consulta la [documentación del comando scaffold](docs/scaffold-command.md).
 
 ## Desarrollo
 
