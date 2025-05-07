@@ -108,16 +108,8 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        // Datos del usuario básicos
-        $userData = [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-        ];
-
-        // Añadir roles y permisos
-        $userData['roles'] = $user->getRoleNames();
-        $userData['permissions'] = $user->getAllPermissions()->pluck('name');
+        // Usar el método del servicio para obtener datos formateados
+        $userData = $this->authService->getUserData($user);
 
         return response()->json($userData);
     }

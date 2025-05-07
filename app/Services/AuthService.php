@@ -81,6 +81,22 @@ class AuthService implements AuthServiceInterface
         /** @var User $user */
         $user = Auth::user();
 
+        // Usar el nuevo método para obtener datos de usuario
+        $userData = $this->getUserData($user);
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => 3600, // 1 hora fija por ahora
+            'user' => $userData,
+        ], $status);
+    }
+
+    /**
+     * Obtener datos formateados del usuario incluyendo roles y permisos
+     */
+    public function getUserData(User $user): array
+    {
         // Datos del usuario básicos
         $userData = [
             'id' => $user->id,
@@ -92,11 +108,6 @@ class AuthService implements AuthServiceInterface
         $userData['roles'] = $user->getRoleNames();
         $userData['permissions'] = $user->getAllPermissions()->pluck('name');
 
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => 3600, // 1 hora fija por ahora
-            'user' => $userData,
-        ], $status);
+        return $userData;
     }
 }

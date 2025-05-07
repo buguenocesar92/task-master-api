@@ -21,4 +21,9 @@ interface AuthServiceInterface
      * Construir respuesta con token JWT
      */
     public function respondWithToken(string $token, int $status = 200): JsonResponse;
+
+    /**
+     * Obtener datos formateados del usuario incluyendo roles y permisos
+     */
+    public function getUserData(User $user): array;
 }
