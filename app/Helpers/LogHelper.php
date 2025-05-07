@@ -45,8 +45,9 @@ class LogHelper
 
             // Parsear la dirección de conexión
             $parts = parse_url($connectionString);
-            if (!$parts || !isset($parts['host']) || !isset($parts['port'])) {
+            if (! $parts || ! isset($parts['host']) || ! isset($parts['port'])) {
                 Log::error("Configuración de conexión a Logstash inválida: $connectionString");
+
                 return self::fallbackLog($message, $context, $level);
             }
 
@@ -55,8 +56,9 @@ class LogHelper
 
             // Intentar conexión con timeout reducido
             $socket = @fsockopen('tcp://' . $host, $port, $errno, $errstr, $timeout);
-            if (!$socket) {
+            if (! $socket) {
                 Log::warning("Error al conectar a Logstash ($host:$port): $errstr ($errno)");
+
                 return self::fallbackLog($message, $context, $level);
             }
 
@@ -75,6 +77,7 @@ class LogHelper
             return true;
         } catch (\Exception $e) {
             Log::error('Error al enviar log a Logstash: ' . $e->getMessage());
+
             return self::fallbackLog($message, $context, $level);
         }
     }
@@ -85,7 +88,7 @@ class LogHelper
     private static function fallbackLog($message, array $context, $level)
     {
         // Aseguramos que el nivel sea válido
-        if (!in_array($level, ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'])) {
+        if (! in_array($level, ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'])) {
             $level = 'info';
         }
 
@@ -96,4 +99,3 @@ class LogHelper
         return true;
     }
 }
-
