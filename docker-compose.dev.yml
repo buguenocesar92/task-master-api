@@ -31,6 +31,9 @@ services:
 
       REDIS_HOST: "redis"
 
+      # Configuración para JWT - Referencia al archivo .env
+      JWT_SECRET: "${JWT_SECRET}"
+
       # Configuración para ELK
       LOG_CHANNEL: "stack"
       LOG_STACK: "single,logstash"
