@@ -18,6 +18,16 @@ interface AuthServiceInterface
     public function login(array $credentials): string|bool;
 
     /**
+     * Generar un token de refresco para el usuario
+     */
+    public function generateRefreshToken(): string|bool;
+
+    /**
+     * Refrescar un token JWT existente
+     */
+    public function refreshToken(string $token): string|bool;
+
+    /**
      * Construir respuesta con token JWT
      */
     public function respondWithToken(string $token, int $status = 200): JsonResponse;

@@ -431,19 +431,98 @@
                 "tags": [
                     "Autenticación"
                 ],
-                "summary": "Refresca el token JWT (implementación actual requiere nuevo login)",
-                "description": "Refrescar token - en implementación real deberíamos usar JWT refresh tokens\nPor ahora, simplemente requerimos que el usuario vuelva a iniciar sesión",
+                "summary": "Refresca el token JWT obteniendo uno nuevo",
+                "description": "Utiliza un token de refresco (refresh_token) para obtener un nuevo token de acceso sin necesidad de credenciales",
                 "operationId": "f6c9683ed975ace7d035a09e6e2a9332",
+                "requestBody": {
+                    "description": "Token de refresco obtenido previamente",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "refresh_token"
+                                ],
+                                "properties": {
+                                    "refresh_token": {
+                                        "type": "string",
+                                        "example": "eyJ0eXAiOiJKV1QiLCJhbG..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
-                    "401": {
-                        "description": "Requiere nuevo inicio de sesión",
+                    "200": {
+                        "description": "Token refrescado correctamente",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "message": {
+                                        "access_token": {
                                             "type": "string",
-                                            "example": "Para obtener un nuevo token, por favor inicie sesión nuevamente"
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbG..."
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "bearer"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
+                                        },
+                                        "refresh_token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbG..."
+                                        },
+                                        "user": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Juan Pérez"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "juan@example.com"
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "user"
+                                                    }
+                                                },
+                                                "permissions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "task:create"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido o expirado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Invalid refresh token"
                                         }
                                     },
                                     "type": "object"

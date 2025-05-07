@@ -9,6 +9,8 @@ use App\Services\Interfaces\AuthServiceInterface;
 use App\Services\Interfaces\LoggingServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * @OA\Info(
@@ -299,27 +301,76 @@ class AuthController extends Controller
     }
 
     /**
-     * Refrescar token - en implementación real deberíamos usar JWT refresh tokens
-     * Por ahora, simplemente requerimos que el usuario vuelva a iniciar sesión
+     * Refrescar token - usando el token de refresco generado específicamente para esta finalidad
      *
      * @OA\Post(
      *     path="/auth/refresh",
-     *     summary="Refresca el token JWT (implementación actual requiere nuevo login)",
+     *     summary="Refresca el token JWT obteniendo uno nuevo",
+     *     description="Utiliza un token de refresco (refresh_token) para obtener un nuevo token de acceso sin necesidad de credenciales",
      *     tags={"Autenticación"},
      *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Token de refresco obtenido previamente",
+     *         @OA\JsonContent(
+     *             required={"refresh_token"},
+     *             @OA\Property(property="refresh_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbG...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token refrescado correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbG..."),
+     *             @OA\Property(property="token_type", type="string", example="bearer"),
+     *             @OA\Property(property="expires_in", type="integer", example=3600),
+     *             @OA\Property(property="refresh_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbG..."),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Juan Pérez"),
+     *                 @OA\Property(property="email", type="string", example="juan@example.com"),
+     *                 @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
+     *                 @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *             )
+     *         )
+     *     ),
      *     @OA\Response(
      *         response=401,
-     *         description="Requiere nuevo inicio de sesión",
+     *         description="Token inválido o expirado",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Para obtener un nuevo token, por favor inicie sesión nuevamente")
+     *             @OA\Property(property="error", type="string", example="Invalid refresh token")
      *         )
      *     )
      * )
      */
-    public function refresh(): JsonResponse
+    public function refresh(Request $request): JsonResponse
     {
-        return response()->json([
-            'message' => 'Para obtener un nuevo token, por favor inicie sesión nuevamente',
-        ], 401);
+        // Validar que se proporciona un token de refresco
+        $validator = Validator::make($request->all(), [
+            'refresh_token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Debe proporcionar un token de refresco válido'], 422);
+        }
+
+        $refreshToken = $request->input('refresh_token');
+
+        // Intentar refrescar el token
+        $newToken = $this->authService->refreshToken($refreshToken);
+
+        if (!$newToken) {
+            $this->logger->log('Intento fallido de refrescar token', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ], 'warning');
+
+            return response()->json(['error' => 'Token de refresco inválido o expirado'], 401);
+        }
+
+        // Devolver nueva respuesta con token actualizado
+        return $this->authService->respondWithToken($newToken);
     }
 }
