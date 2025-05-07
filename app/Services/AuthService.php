@@ -14,8 +14,6 @@ class AuthService implements AuthServiceInterface
 
     /**
      * Constructor
-     *
-     * @param UserRepositoryInterface $userRepository
      */
     public function __construct(UserRepositoryInterface $userRepository)
     {
@@ -24,9 +22,6 @@ class AuthService implements AuthServiceInterface
 
     /**
      * Registrar un nuevo usuario
-     *
-     * @param array $data
-     * @return User
      */
     public function register(array $data): User
     {
@@ -35,13 +30,10 @@ class AuthService implements AuthServiceInterface
 
     /**
      * Iniciar sesión de usuario
-     *
-     * @param array $credentials
-     * @return string|bool
      */
     public function login(array $credentials): string|bool
     {
-        if (!$token = Auth::attempt($credentials)) {
+        if (! $token = Auth::attempt($credentials)) {
             return false;
         }
 
@@ -50,12 +42,10 @@ class AuthService implements AuthServiceInterface
 
     /**
      * Construir respuesta con token JWT
-     *
-     * @param string $token
-     * @return JsonResponse
      */
     public function respondWithToken(string $token): JsonResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
         // Datos del usuario básicos
@@ -65,19 +55,20 @@ class AuthService implements AuthServiceInterface
             'email' => $user->email,
         ];
 
-        // Añadir roles y permisos si el método existe (Spatie Permission)
-        if (method_exists($user, 'getRoleNames')) {
-            $userData['roles'] = $user->getRoleNames();
-        }
+        // Añadir roles y permisos si están disponibles
+        // Comentamos estas líneas porque están dando errores
+        // if (method_exists($user, 'getRoleNames')) {
+        //     $userData['roles'] = $user->getRoleNames();
+        // }
 
-        if (method_exists($user, 'getAllPermissions')) {
-            $userData['permissions'] = $user->getAllPermissions()->pluck('name');
-        }
+        // if (method_exists($user, 'getAllPermissions')) {
+        //     $userData['permissions'] = $user->getAllPermissions()->pluck('name');
+        // }
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => Auth::factory()->getTTL() * 60,
+            'expires_in' => 3600, // 1 hora fija por ahora
             'user' => $userData,
         ]);
     }

@@ -6,3 +6,8 @@ parameters:
     excludePaths:
         - vendor
     treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Ignorar errores de Mockery en tests
+        - '#Parameter \#1 \$userRepository of class App\\Services\\AuthService constructor expects App\\Repositories\\Interfaces\\UserRepositoryInterface, Mockery\\MockInterface given\.#'
+        - '#Property Tests\\Unit\\Services\\AuthServiceTest::\$mockUserRepo \(App\\Repositories\\Interfaces\\UserRepositoryInterface&Mockery\\MockInterface\) does not accept Mockery\\MockInterface\.#'
+        - '#Call to an undefined method Mockery\\ExpectationInterface\|Mockery\\HigherOrderMessage::once\(\)\.#'
