@@ -55,7 +55,7 @@ class AuthRolesTest extends TestCase
         $response->assertStatus(201);
 
         // Verificar que el usuario tiene el rol "user"
-        $user = User::where('email', 'test@example.com')->first();
+        $user = User::query()->where('email', 'test@example.com')->first();
         $this->assertTrue($user->hasRole('user', 'api'));
 
         // Verificar que la respuesta incluye los roles

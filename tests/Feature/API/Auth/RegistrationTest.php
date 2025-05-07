@@ -83,7 +83,7 @@ class RegistrationTest extends TestCase
         ]);
 
         // Verificar que el usuario tiene el rol "user"
-        $user = User::where('email', $userData['email'])->first();
+        $user = User::query()->where('email', $userData['email'])->first();
         $this->assertTrue($user->hasRole('user', 'api'));
     }
 

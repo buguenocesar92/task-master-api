@@ -24,7 +24,7 @@ class UserRepository implements UserRepositoryInterface
      */
     public function create(array $data): User
     {
-        return $this->model->create([
+        return $this->model->query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
@@ -36,8 +36,7 @@ class UserRepository implements UserRepositoryInterface
      */
     public function findByEmail(string $email): ?User
     {
-        /** @phpstan-ignore-next-line */
-        return $this->model->where('email', $email)->first();
+        return $this->model->query()->where('email', $email)->first();
     }
 
     /**
@@ -45,8 +44,7 @@ class UserRepository implements UserRepositoryInterface
      */
     public function findById(int $id): ?User
     {
-        /** @phpstan-ignore-next-line */
-        return $this->model->find($id);
+        return $this->model->query()->find($id);
     }
 
     /**
@@ -56,8 +54,7 @@ class UserRepository implements UserRepositoryInterface
     {
         // Ya que estamos teniendo problemas con whereDoesntHave, usamos una solución alternativa
         // hasta que se configure correctamente el paquete de permisos
-        /** @phpstan-ignore-next-line */
-        return $this->model->get();
+        return $this->model->query()->get();
     }
 
     // Otros métodos según tus necesidades...

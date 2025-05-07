@@ -3,6 +3,6 @@ parameters:
         - Illuminate\Database\Eloquent\Model
 
     ignoreErrors:
-        # Ignorar errores de métodos dinámicos de Spatie Permission en los tests
+        # Spatie Permission agrega métodos dinámicos que PHPStan no puede detectar
         - message: '#Call to an undefined method .+::(hasRole|assignRole|hasPermissionTo|getAllPermissions|getRoleNames)\(\)#'
           path: tests/*
