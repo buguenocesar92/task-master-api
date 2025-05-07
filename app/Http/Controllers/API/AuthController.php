@@ -55,9 +55,24 @@ class AuthController extends Controller
      *             required={"name", "email", "password", "password_confirmation"},
      *
      *             @OA\Property(property="name", type="string", example="John Doe"),
-     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="Password123"),
-     *             @OA\Property(property="password_confirmation", type="string", format="password", example="Password123")
+     *             @OA\Property(
+     *                 property="email",
+     *                 type="string",
+     *                 format="email",
+     *                 example="user@example.com"
+     *             ),
+     *             @OA\Property(
+     *                 property="password",
+     *                 type="string",
+     *                 format="password",
+     *                 example="Password123"
+     *             ),
+     *             @OA\Property(
+     *                 property="password_confirmation",
+     *                 type="string",
+     *                 format="password",
+     *                 example="Password123"
+     *             )
      *         )
      *     ),
      *
@@ -73,7 +88,11 @@ class AuthController extends Controller
      *                 @OA\Property(property="email", type="string", example="user@example.com"),
      *                 @OA\Property(property="created_at", type="string", format="date-time")
      *             ),
-     *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...")
+     *             @OA\Property(
+     *                 property="token",
+     *                 type="string",
+     *                 example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+     *             )
      *         )
      *     ),
      *

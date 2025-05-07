@@ -23,7 +23,10 @@ return [
                 /*
                 * Edit to set path where swagger ui assets should be stored
                 */
-                'swagger_ui_assets_path' => env('L5_SWAGGER_UI_ASSETS_PATH', 'vendor/swagger-api/swagger-ui/dist/'),
+                'swagger_ui_assets_path' => env(
+                    'L5_SWAGGER_UI_ASSETS_PATH',
+                    'vendor/swagger-api/swagger-ui/dist/'
+                ),
 
                 /*
                  * File name of the generated json documentation file
@@ -38,7 +41,10 @@ return [
                 /*
                  * Set this to `json` or `yaml` to determine which documentation file to use in UI
                  */
-                'format_to_use_for_docs' => env('L5_FORMAT_TO_USE_FOR_DOCS', 'json'),
+                'format_to_use_for_docs' => env(
+                    'L5_FORMAT_TO_USE_FOR_DOCS',
+                    'json'
+                ),
 
                 /*
                  * Absolute paths to directory containing the swagger annotations are stored.
@@ -162,7 +168,10 @@ return [
              * Allows to generate specs either for OpenAPI 3.0.0 or OpenAPI 3.1.0.
              * By default the spec will be in version 3.0.0
              */
-            'open_api_spec_version' => env('L5_SWAGGER_OPEN_API_SPEC_VERSION', \L5Swagger\Generator::OPEN_API_DEFAULT_SPEC_VERSION),
+            'open_api_spec_version' => env(
+                'L5_SWAGGER_OPEN_API_SPEC_VERSION',
+                \L5Swagger\Generator::OPEN_API_DEFAULT_SPEC_VERSION
+            ),
         ],
 
         /*
@@ -175,17 +184,17 @@ return [
                  */
                 /*
                 'api_key_security_example' => [ // Unique name of security
-                    'type' => 'apiKey', // The type of the security scheme. Valid values are "basic", "apiKey" or "oauth2".
+                    'type' => 'apiKey', // The type of the security scheme (basic, apiKey, oauth2).
                     'description' => 'A short description for security scheme',
                     'name' => 'api_key', // The name of the header or query parameter to be used.
                     'in' => 'header', // The location of the API key. Valid values are "query" or "header".
                 ],
                 'oauth2_security_example' => [ // Unique name of security
-                    'type' => 'oauth2', // The type of the security scheme. Valid values are "basic", "apiKey" or "oauth2".
+                    'type' => 'oauth2', // The type of the security scheme (basic, apiKey, oauth2).
                     'description' => 'A short description for oauth2 security scheme.',
-                    'flow' => 'implicit', // The flow used by the OAuth2 security scheme. Valid values are "implicit", "password", "application" or "accessCode".
-                    'authorizationUrl' => 'http://example.com/auth', // The authorization URL to be used for (implicit/accessCode)
-                    //'tokenUrl' => 'http://example.com/auth' // The authorization URL to be used for (password/application/accessCode)
+                    'flow' => 'implicit', // OAuth2 flow (implicit, password, application, accessCode).
+                    'authorizationUrl' => 'http://example.com/auth', // Auth URL for implicit/accessCode
+                    //'tokenUrl' => 'http://example.com/auth' // Auth URL for password/application/accessCode
                     'scopes' => [
                         'read:projects' => 'read your projects',
                         'write:projects' => 'modify projects in your account',
@@ -195,7 +204,7 @@ return [
 
                 /* Open API 3.0 support
                 'passport' => [ // Unique name of security
-                    'type' => 'oauth2', // The type of the security scheme. Valid values are "basic", "apiKey" or "oauth2".
+                    'type' => 'oauth2', // The type of the security scheme (basic, apiKey, oauth2).
                     'description' => 'Laravel passport oauth2 security.',
                     'in' => 'header',
                     'scheme' => 'https',
@@ -209,7 +218,7 @@ return [
                     ],
                 ],
                 'sanctum' => [ // Unique name of security
-                    'type' => 'apiKey', // Valid values are "basic", "apiKey" or "oauth2".
+                    'type' => 'apiKey', // Security type (basic, apiKey, oauth2).
                     'description' => 'Enter token in format (Bearer <token>)',
                     'name' => 'Authorization', // The name of the header or query parameter to be used.
                     'in' => 'header', // The location of the API key. Valid values are "query" or "header".
@@ -237,18 +246,27 @@ return [
          * Set this to `true` in development mode so that docs would be regenerated on each request
          * Set this to `false` to disable swagger generation on production
          */
-        'generate_always' => env('L5_SWAGGER_GENERATE_ALWAYS', false),
+        'generate_always' => env(
+            'L5_SWAGGER_GENERATE_ALWAYS',
+            false
+        ),
 
         /*
          * Set this to `true` to generate a copy of documentation in yaml format
          */
-        'generate_yaml_copy' => env('L5_SWAGGER_GENERATE_YAML_COPY', false),
+        'generate_yaml_copy' => env(
+            'L5_SWAGGER_GENERATE_YAML_COPY',
+            false
+        ),
 
         /*
          * Edit to trust the proxy's ip address - needed for AWS Load Balancer
          * string[]
          */
-        'proxy' => false,
+        'proxy' => env(
+            'L5_SWAGGER_PROXY',
+            false
+        ),
 
         /*
          * Configs plugin allows to fetch external configs instead of passing them to SwaggerUIBundle.
