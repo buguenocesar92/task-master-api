@@ -123,7 +123,7 @@ return [
             'driver' => 'monolog',
             'handler' => Monolog\Handler\SocketHandler::class,
             'handler_with' => [
-                'connection_string' => 'tcp://logstash-dev:5000',
+                'connectionString' => 'tcp://logstash-dev:5000',
                 'timeout' => 2.0,
             ],
             'formatter' => Monolog\Formatter\JsonFormatter::class,

@@ -38,7 +38,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Crear todos los permisos
         $allPermissions = array_merge($taskPermissions, $userPermissions);
         foreach ($allPermissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::create(['name' => $permission, 'guard_name' => 'api']);
         }
 
         // Crear roles
@@ -57,7 +57,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($roles as $roleName => $permissions) {
-            $role = Role::create(['name' => $roleName]);
+            $role = Role::create(['name' => $roleName, 'guard_name' => 'api']);
             $role->givePermissionTo($permissions);
         }
 

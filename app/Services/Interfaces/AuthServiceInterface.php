@@ -20,5 +20,5 @@ interface AuthServiceInterface
     /**
      * Construir respuesta con token JWT
      */
-    public function respondWithToken(string $token): JsonResponse;
+    public function respondWithToken(string $token, int $status = 200): JsonResponse;
 }

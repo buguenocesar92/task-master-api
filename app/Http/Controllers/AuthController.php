@@ -6,19 +6,24 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Services\Interfaces\AuthServiceInterface;
+use App\Services\Interfaces\LoggingServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     protected AuthServiceInterface $authService;
+    protected LoggingServiceInterface $logger;
 
     /**
      * Constructor
      */
-    public function __construct(AuthServiceInterface $authService)
-    {
+    public function __construct(
+        AuthServiceInterface $authService,
+        LoggingServiceInterface $logger
+    ) {
         $this->authService = $authService;
+        $this->logger = $logger;
     }
 
     /**
@@ -26,20 +31,57 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        // Registrar al usuario
-        $user = $this->authService->register($request->validated());
+        try {
+            // Registrar al usuario
+            $user = $this->authService->register($request->validated());
 
-        // Generar token para auto-login
-        $credentials = $request->only(['email', 'password']);
-        $token = $this->authService->login($credentials);
+            // Generar token para auto-login
+            $credentials = $request->only(['email', 'password']);
+            $token = $this->authService->login($credentials);
 
-        if (! $token) {
-            // Error inesperado, pero respondemos con el usuario creado
-            return response()->json(['message' => 'Usuario creado pero no se pudo iniciar sesión'], 201);
+            if (! $token) {
+                // Error inesperado, pero respondemos con el usuario creado
+                $this->logger->log('Usuario creado pero no se pudo iniciar sesión', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ], 'warning');
+
+                return response()->json([
+                    'message' => 'Usuario creado pero no se pudo iniciar sesión',
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                    ]
+                ], 201);
+            }
+
+            // Registro exitoso
+            $this->logger->log('Usuario registrado correctamente', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+
+            // Devolver respuesta con token y código 201 (Created)
+            return $this->authService->respondWithToken($token, 201);
+        } catch (\RuntimeException $e) {
+            // Capturar excepciones específicas de registro
+            $this->logger->log('Error específico durante el registro', [
+                'error' => $e->getMessage(),
+                'request' => $request->validated()
+            ], 'error');
+
+            return response()->json(['error' => $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            // Capturar cualquier otra excepción
+            $this->logger->log('Error inesperado durante el registro', [
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'request' => $request->validated()
+            ], 'error');
+
+            return response()->json(['error' => 'Ocurrió un error durante el registro'], 500);
         }
-
-        // Devolver respuesta con token
-        return $this->authService->respondWithToken($token);
     }
 
     /**
