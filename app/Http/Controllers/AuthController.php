@@ -10,6 +10,28 @@ use App\Services\Interfaces\LoggingServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * @OA\Info(
+ *     version="1.0.0",
+ *     title="Task Master API",
+ *     description="API para la gestión de tareas con autenticación JWT",
+ *     @OA\Contact(
+ *         email="admin@taskmaster.com"
+ *     )
+ * )
+ *
+ * @OA\Server(
+ *     url="/api",
+ *     description="API Server"
+ * )
+ *
+ * @OA\SecurityScheme(
+ *     securityScheme="bearerAuth",
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="JWT"
+ * )
+ */
 class AuthController extends Controller
 {
     protected AuthServiceInterface $authService;
@@ -29,6 +51,60 @@ class AuthController extends Controller
 
     /**
      * Registrar un nuevo usuario
+     *
+     * @OA\Post(
+     *     path="/auth/register",
+     *     summary="Registra un nuevo usuario",
+     *     tags={"Autenticación"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Datos del usuario a registrar",
+     *         @OA\JsonContent(
+     *             required={"name", "email", "password", "password_confirmation"},
+     *             @OA\Property(property="name", type="string", example="Juan Pérez", description="Nombre del usuario"),
+     *             @OA\Property(property="email", type="string", format="email", example="juan@example.com", description="Correo electrónico"),
+     *             @OA\Property(property="password", type="string", format="password", example="Secret123", description="Contraseña (mínimo 8 caracteres)"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="Secret123", description="Confirmación de contraseña")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Usuario registrado correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbG..."),
+     *             @OA\Property(property="token_type", type="string", example="bearer"),
+     *             @OA\Property(property="expires_in", type="integer", example=3600),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Juan Pérez"),
+     *                 @OA\Property(property="email", type="string", example="juan@example.com"),
+     *                 @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
+     *                 @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Error de validación",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 @OA\Property(property="email", type="array", @OA\Items(type="string", example="El correo ya está en uso."))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error interno del servidor",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="Ocurrió un error durante el registro")
+     *         )
+     *     )
+     * )
      */
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -87,6 +163,58 @@ class AuthController extends Controller
 
     /**
      * Iniciar sesión
+     *
+     * @OA\Post(
+     *     path="/auth/login",
+     *     summary="Inicia sesión de usuario",
+     *     tags={"Autenticación"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Credenciales de acceso",
+     *         @OA\JsonContent(
+     *             required={"email", "password"},
+     *             @OA\Property(property="email", type="string", format="email", example="juan@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="Secret123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Inicio de sesión exitoso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbG..."),
+     *             @OA\Property(property="token_type", type="string", example="bearer"),
+     *             @OA\Property(property="expires_in", type="integer", example=3600),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Juan Pérez"),
+     *                 @OA\Property(property="email", type="string", example="juan@example.com"),
+     *                 @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
+     *                 @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Credenciales incorrectas",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="Credenciales incorrectas")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Error de validación",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 @OA\Property(property="email", type="array", @OA\Items(type="string", example="El campo email es requerido."))
+     *             )
+     *         )
+     *     )
+     * )
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -102,6 +230,31 @@ class AuthController extends Controller
 
     /**
      * Obtener información del usuario autenticado
+     *
+     * @OA\Get(
+     *     path="/auth/me",
+     *     summary="Obtiene información del usuario autenticado",
+     *     tags={"Autenticación"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Información del usuario",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="name", type="string", example="Juan Pérez"),
+     *             @OA\Property(property="email", type="string", example="juan@example.com"),
+     *             @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
+     *             @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autenticado",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *         )
+     *     )
+     * )
      */
     public function me(): JsonResponse
     {
@@ -116,6 +269,27 @@ class AuthController extends Controller
 
     /**
      * Cerrar sesión
+     *
+     * @OA\Post(
+     *     path="/auth/logout",
+     *     summary="Cierra la sesión del usuario actual",
+     *     tags={"Autenticación"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Sesión cerrada correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Sesión cerrada correctamente")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autenticado",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *         )
+     *     )
+     * )
      */
     public function logout(): JsonResponse
     {
@@ -127,6 +301,20 @@ class AuthController extends Controller
     /**
      * Refrescar token - en implementación real deberíamos usar JWT refresh tokens
      * Por ahora, simplemente requerimos que el usuario vuelva a iniciar sesión
+     *
+     * @OA\Post(
+     *     path="/auth/refresh",
+     *     summary="Refresca el token JWT (implementación actual requiere nuevo login)",
+     *     tags={"Autenticación"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=401,
+     *         description="Requiere nuevo inicio de sesión",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Para obtener un nuevo token, por favor inicie sesión nuevamente")
+     *         )
+     *     )
+     * )
      */
     public function refresh(): JsonResponse
     {
