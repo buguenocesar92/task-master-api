@@ -8,7 +8,6 @@ use App\Services\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Mockery;
-use Mockery\MockInterface;
 use Tests\TestCase;
 
 class AuthServiceTest extends TestCase
@@ -18,19 +17,19 @@ class AuthServiceTest extends TestCase
     protected AuthService $service;
 
     /**
-     * @var UserRepositoryInterface&MockInterface
+     * @var \Mockery\LegacyMockInterface|\Mockery\MockInterface|UserRepositoryInterface
      */
-    protected $mockUserRepo;
+    protected $userRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Creamos un mock que implemente la interfaz
-        $this->mockUserRepo = Mockery::mock(UserRepositoryInterface::class);
+        // Crear mock del repositorio que satisface a PHPStan
+        $this->userRepository = Mockery::mock(UserRepositoryInterface::class);
 
-        // Inyección del mock en el servicio
-        $this->service = new AuthService($this->mockUserRepo);
+        // Crear el servicio con el mock
+        $this->service = new AuthService($this->userRepository);
     }
 
     protected function tearDown(): void
@@ -39,7 +38,7 @@ class AuthServiceTest extends TestCase
         parent::tearDown();
     }
 
-    public function testRegisterCreatesNewUser()
+    public function testRegisterCreatesNewUser(): void
     {
         // Arrange
         $userData = [
@@ -53,13 +52,13 @@ class AuthServiceTest extends TestCase
         $user->name = 'Test User';
         $user->email = 'test@example.com';
 
-        // Configurar expectativas del mock
-        $this->mockUserRepo->shouldReceive('create')
+        // Configurar el mock
+        $this->userRepository->shouldReceive('create')
             ->once()
             ->with(Mockery::on(function ($arg) use ($userData) {
                 return $arg['name'] === $userData['name'] &&
                        $arg['email'] === $userData['email'] &&
-                       isset($arg['password']); // Solo verificamos que existe, no el valor porque está hasheado
+                       isset($arg['password']);
             }))
             ->andReturn($user);
 
@@ -72,7 +71,7 @@ class AuthServiceTest extends TestCase
         $this->assertEquals('test@example.com', $result->email);
     }
 
-    public function testLoginReturnsTokenOnSuccess()
+    public function testLoginReturnsTokenOnSuccess(): void
     {
         // Arrange
         $credentials = [
@@ -82,6 +81,7 @@ class AuthServiceTest extends TestCase
 
         // Mock de Auth facade
         Auth::shouldReceive('attempt')
+            ->once()
             ->with($credentials)
             ->andReturn('test-token-123');
 
@@ -92,7 +92,7 @@ class AuthServiceTest extends TestCase
         $this->assertEquals('test-token-123', $result);
     }
 
-    public function testLoginReturnsFailedOnFailure()
+    public function testLoginReturnsFailedOnFailure(): void
     {
         // Arrange
         $credentials = [
@@ -102,6 +102,7 @@ class AuthServiceTest extends TestCase
 
         // Mock de Auth facade
         Auth::shouldReceive('attempt')
+            ->once()
             ->with($credentials)
             ->andReturn(false);
 
@@ -109,7 +110,6 @@ class AuthServiceTest extends TestCase
         $result = $this->service->login($credentials);
 
         // Assert
-        // Cambiamos assertNull por assertFalse, ya que el método devuelve false, no null
         $this->assertFalse($result);
     }
 
