@@ -1,0 +1,8 @@
+parameters:
+    universalObjectCratesClasses:
+        - Illuminate\Database\Eloquent\Model
+
+    ignoreErrors:
+        # Ignorar errores de métodos dinámicos de Spatie Permission en los tests
+        - message: '#Call to an undefined method .+::(hasRole|assignRole|hasPermissionTo|getAllPermissions|getRoleNames)\(\)#'
+          path: tests/*

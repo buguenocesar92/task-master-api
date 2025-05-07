@@ -1,6 +1,3 @@
 parameters:
 	ignoreErrors:
-		-
-			message: '#Parameter \#1 \$related of method Illuminate\\Database\\Eloquent\\Model::belongsTo\(\) expects class-string<Illuminate\\Database\\Eloquent\\Model>, string given.#'
-			path: app/Models/*
-			count: 1
+		- '#Call to an undefined static method App\\Models\\User::where\(\).#'

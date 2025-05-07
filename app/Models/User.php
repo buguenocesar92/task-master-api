@@ -21,6 +21,12 @@ use Spatie\Permission\Traits\HasRoles;
  * @property \Illuminate\Support\Carbon $updated_at
  *
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\User create(array $attributes = [])
+ * @method static \Illuminate\Database\Eloquent\Builder where($column, $operator = null, $value = null, $boolean = 'and')
+ * @method bool assignRole($roles, $guard = null)
+ * @method bool hasRole($roles, $guard = null)
+ * @method bool hasPermissionTo($permission, $guard = null)
+ * @method \Illuminate\Support\Collection getAllPermissions()
+ * @method \Illuminate\Support\Collection getRoleNames()
  */
 class User extends Authenticatable implements JWTSubject
 {

@@ -11,10 +11,9 @@ class LoggingService implements LoggingServiceInterface
     /**
      * Envía un log al sistema centralizado
      *
-     * @param string $message El mensaje principal
-     * @param array $context Datos adicionales para el log
-     * @param string $level Nivel de log (debug, info, warning, error, critical)
-     * @return bool
+     * @param  string  $message  El mensaje principal
+     * @param  array  $context  Datos adicionales para el log
+     * @param  string  $level  Nivel de log (debug, info, warning, error, critical)
      */
     public function log(string $message, array $context = [], string $level = 'info'): bool
     {
@@ -22,10 +21,11 @@ class LoggingService implements LoggingServiceInterface
         if (App::environment('testing')) {
             // Simplemente escribimos en el log de Laravel regular
             $logMethod = $level;
-            if (!in_array($level, ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'])) {
+            if (! in_array($level, ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'])) {
                 $logMethod = 'info';
             }
             \Illuminate\Support\Facades\Log::$logMethod($message, $context);
+
             return true;
         }
 

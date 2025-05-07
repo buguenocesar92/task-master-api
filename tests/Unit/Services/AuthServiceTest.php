@@ -74,10 +74,14 @@ class AuthServiceTest extends TestCase
         $user->shouldReceive('getAttribute')
             ->andReturnUsing(function ($key) {
                 switch ($key) {
-                    case 'id': return 1;
-                    case 'name': return 'Test User';
-                    case 'email': return 'test@example.com';
-                    default: return null;
+                    case 'id':
+                        return 1;
+                    case 'name':
+                        return 'Test User';
+                    case 'email':
+                        return 'test@example.com';
+                    default:
+                        return null;
                 }
             });
 

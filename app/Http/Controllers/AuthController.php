@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 class AuthController extends Controller
 {
     protected AuthServiceInterface $authService;
+
     protected LoggingServiceInterface $logger;
 
     /**
@@ -43,7 +44,7 @@ class AuthController extends Controller
                 // Error inesperado, pero respondemos con el usuario creado
                 $this->logger->log('Usuario creado pero no se pudo iniciar sesión', [
                     'user_id' => $user->id,
-                    'email' => $user->email
+                    'email' => $user->email,
                 ], 'warning');
 
                 return response()->json([
@@ -52,14 +53,14 @@ class AuthController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                    ]
+                    ],
                 ], 201);
             }
 
             // Registro exitoso
             $this->logger->log('Usuario registrado correctamente', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ]);
 
             // Devolver respuesta con token y código 201 (Created)
@@ -68,7 +69,7 @@ class AuthController extends Controller
             // Capturar excepciones específicas de registro
             $this->logger->log('Error específico durante el registro', [
                 'error' => $e->getMessage(),
-                'request' => $request->validated()
+                'request' => $request->validated(),
             ], 'error');
 
             return response()->json(['error' => $e->getMessage()], 500);
@@ -77,7 +78,7 @@ class AuthController extends Controller
             $this->logger->log('Error inesperado durante el registro', [
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
-                'request' => $request->validated()
+                'request' => $request->validated(),
             ], 'error');
 
             return response()->json(['error' => 'Ocurrió un error durante el registro'], 500);

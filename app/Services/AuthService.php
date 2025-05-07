@@ -13,6 +13,7 @@ use Spatie\Permission\Models\Role;
 class AuthService implements AuthServiceInterface
 {
     protected UserRepositoryInterface $userRepository;
+
     protected LoggingServiceInterface $logger;
 
     /**
@@ -42,7 +43,7 @@ class AuthService implements AuthServiceInterface
             $this->logger->log('Error al asignar rol de usuario', [
                 'error' => $e->getMessage(),
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ], 'error');
 
             throw new \RuntimeException('No se pudo asignar el rol al usuario. Verifique la configuración de roles.');
@@ -51,7 +52,7 @@ class AuthService implements AuthServiceInterface
             $this->logger->log('Error inesperado al registrar usuario', [
                 'error' => $e->getMessage(),
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ], 'error');
 
             throw new \RuntimeException('Ocurrió un error durante el registro del usuario.');
