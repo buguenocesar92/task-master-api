@@ -1,0 +1,16 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Task Master DB",
+      "Group": "Docker",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "task_master_dev",
+      "Username": "postgres",
+      "Password": "postgres",
+      "SSLMode": "prefer",
+      "SavePassword": true,
+      "ConnectTimeout": 10
+    }
+  }
+}
