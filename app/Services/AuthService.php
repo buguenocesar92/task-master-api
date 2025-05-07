@@ -9,6 +9,9 @@ use App\Services\Interfaces\LoggingServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthService implements AuthServiceInterface
 {
@@ -111,37 +114,59 @@ class AuthService implements AuthServiceInterface
     public function refreshToken(string $token): string|bool
     {
         try {
-            // Establecer el token en el contexto de autenticación
-            Auth::setToken($token);
+            // Intentar decodificar el token sin verificar la expiración
+            $payload = JWTAuth::setToken($token)->getPayload();
 
-            // Verificar que el token es válido
-            if (!Auth::check()) {
-                $this->logger->log('Intento de refresco con token inválido', [], 'warning');
+            // Verificar si es un token de refresco
+            if (!$payload->get('refresh')) {
+                $this->logger->log('Intento de refresco con token no designado para refresco', [], 'warning');
                 return false;
             }
 
-            // Verificar si es un token de refresco
-            $payload = Auth::payload();
-            if (!$payload->get('refresh')) {
-                $this->logger->log('Intento de refresco con token no designado para refresco', [
-                    'user_id' => Auth::id(),
+            // Obtener el ID del usuario desde el token
+            $userId = $payload->get('sub');
+            if (!$userId) {
+                $this->logger->log('Token de refresco sin ID de usuario', [], 'warning');
+                return false;
+            }
+
+            // Buscar el usuario en la base de datos
+            $user = $this->userRepository->findById($userId);
+            if (!$user) {
+                $this->logger->log('Usuario no encontrado para el token de refresco', [
+                    'user_id' => $userId
                 ], 'warning');
                 return false;
             }
 
-            // Generar un nuevo token de acceso
-            $newToken = Auth::refresh();
+            // Generar un nuevo token de acceso para el usuario
+            $newToken = Auth::fromUser($user);
 
+            // Registrar el éxito en el log
             $this->logger->log('Token refrescado exitosamente', [
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
             ], 'info');
 
+            // Establecer el usuario actual para que respondWithToken funcione
+            Auth::setUser($user);
+
             return $newToken;
+
+        } catch (TokenExpiredException $e) {
+            $this->logger->log('Token de refresco expirado', [
+                'error' => $e->getMessage(),
+            ], 'warning');
+            return false;
+        } catch (TokenInvalidException $e) {
+            $this->logger->log('Token de refresco inválido', [
+                'error' => $e->getMessage(),
+            ], 'warning');
+            return false;
         } catch (\Exception $e) {
             $this->logger->log('Error al refrescar token', [
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
             ], 'error');
-
             return false;
         }
     }
