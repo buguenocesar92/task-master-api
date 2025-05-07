@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\Hash;
  *     title="Task Master API",
  *     version="1.0.0",
  *     description="API para la aplicación Task Master - Gestor de tareas y proyectos",
+ *
  *     @OA\Contact(
  *         email="admin@example.com",
  *         name="API Support"
  *     ),
+ *
  *     @OA\License(
  *         name="MIT",
  *         url="https://opensource.org/licenses/MIT"
@@ -45,20 +47,26 @@ class AuthController extends Controller
      *     summary="Registrar un nuevo usuario",
      *     description="Registra un usuario y devuelve los datos del usuario y token de acceso",
      *     operationId="authRegister",
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"name", "email", "password", "password_confirmation"},
+     *
      *             @OA\Property(property="name", type="string", example="John Doe"),
      *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
      *             @OA\Property(property="password", type="string", format="password", example="Password123"),
      *             @OA\Property(property="password_confirmation", type="string", format="password", example="Password123")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Usuario registrado con éxito",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="data", type="object",
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="name", type="string", example="John Doe"),
@@ -68,10 +76,13 @@ class AuthController extends Controller
      *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Error de validación",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
      *         )

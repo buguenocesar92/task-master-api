@@ -34,7 +34,7 @@ class LogstashTestCommand extends Command
         $result = LogHelper::toLogstash($message, [
             'test_id' => time(),
             'command' => 'log:test',
-            'source' => 'artisan'
+            'source' => 'artisan',
         ], $level);
 
         if ($result) {

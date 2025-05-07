@@ -4,9 +4,11 @@ namespace App\Exceptions;
 
 use App\Helpers\LogHelper;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Http\Exceptions\Handler as HttpExceptionHandler;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -46,7 +48,7 @@ class Handler extends ExceptionHandler
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ], 'error');
         });
     }
@@ -54,16 +56,15 @@ class Handler extends ExceptionHandler
     /**
      * A function to handle exceptions
      *
-     * @param \Illuminate\Http\Request $request
-     * @param \Throwable $e
-     * @return \Illuminate\Http\Response
+     * @param  Request  $request
+     * @return JsonResponse|SymfonyResponse
      */
     public function render($request, Throwable $e)
     {
         if ($e instanceof NotFoundHttpException) {
             return response()->json([
                 'error' => 'Not Found',
-                'message' => 'The specified URL could not be found on this server.'
+                'message' => 'The specified URL could not be found on this server.',
             ], Response::HTTP_NOT_FOUND);
         }
 
@@ -71,7 +72,7 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'error' => 'Validation Error',
                 'message' => 'The given data failed to pass validation.',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 

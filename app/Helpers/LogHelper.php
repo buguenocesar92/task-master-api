@@ -30,17 +30,18 @@ class LogHelper
      * Este método establece una conexión directa con Logstash y envía un mensaje formateado
      * en JSON para su procesamiento en la stack ELK.
      *
-     * @param string $message El mensaje de log principal
-     * @param array $context Datos adicionales para enriquecer el log
-     * @param string $level Nivel de log (debug, info, warning, error, critical)
+     * @param  string  $message  El mensaje de log principal
+     * @param  array  $context  Datos adicionales para enriquecer el log
+     * @param  string  $level  Nivel de log (debug, info, warning, error, critical)
      * @return bool Retorna true si el mensaje fue enviado correctamente, false en caso contrario
      */
     public static function toLogstash($message, array $context = [], $level = 'info')
     {
         try {
-            $socket = @fsockopen("tcp://logstash-dev", 5000, $errno, $errstr, 3);
-            if (!$socket) {
+            $socket = @fsockopen('tcp://logstash-dev', 5000, $errno, $errstr, 3);
+            if (! $socket) {
                 Log::error("Error al conectar a Logstash: $errstr ($errno)");
+
                 return false;
             }
 
@@ -48,7 +49,7 @@ class LogHelper
                 'message' => $message,
                 '@timestamp' => date('c'),
                 'level' => $level,
-                'context' => $context
+                'context' => $context,
             ];
 
             fwrite($socket, json_encode($payload) . "\n");
@@ -56,7 +57,8 @@ class LogHelper
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Error al enviar log a Logstash: " . $e->getMessage());
+            Log::error('Error al enviar log a Logstash: ' . $e->getMessage());
+
             return false;
         }
     }
