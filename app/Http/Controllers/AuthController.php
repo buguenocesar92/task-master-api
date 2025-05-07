@@ -72,14 +72,9 @@ class AuthController extends Controller
             'email' => $user->email,
         ];
 
-        // Comentamos estas líneas porque están dando errores
-        // if (method_exists($user, 'getRoleNames')) {
-        //     $userData['roles'] = $user->getRoleNames();
-        // }
-
-        // if (method_exists($user, 'getAllPermissions')) {
-        //     $userData['permissions'] = $user->getAllPermissions()->pluck('name');
-        // }
+        // Añadir roles y permisos
+        $userData['roles'] = $user->getRoleNames();
+        $userData['permissions'] = $user->getAllPermissions()->pluck('name');
 
         return response()->json($userData);
     }

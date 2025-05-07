@@ -25,7 +25,12 @@ class AuthService implements AuthServiceInterface
      */
     public function register(array $data): User
     {
-        return $this->userRepository->create($data);
+        $user = $this->userRepository->create($data);
+
+        // Asignar rol de usuario por defecto
+        $user->assignRole('user');
+
+        return $user;
     }
 
     /**
@@ -55,15 +60,9 @@ class AuthService implements AuthServiceInterface
             'email' => $user->email,
         ];
 
-        // Añadir roles y permisos si están disponibles
-        // Comentamos estas líneas porque están dando errores
-        // if (method_exists($user, 'getRoleNames')) {
-        //     $userData['roles'] = $user->getRoleNames();
-        // }
-
-        // if (method_exists($user, 'getAllPermissions')) {
-        //     $userData['permissions'] = $user->getAllPermissions()->pluck('name');
-        // }
+        // Añadir roles y permisos
+        $userData['roles'] = $user->getRoleNames();
+        $userData['permissions'] = $user->getAllPermissions()->pluck('name');
 
         return response()->json([
             'access_token' => $token,
