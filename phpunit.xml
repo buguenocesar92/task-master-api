@@ -7,7 +7,8 @@
          beStrictAboutOutputDuringTests="true"
          beStrictAboutChangesToGlobalState="true"
          testdox="true"
-         cacheResult="false"
+         cacheResult="true"
+         displayDetailsOnTestsThatTriggerWarnings="false"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -27,12 +28,6 @@
             <directory suffix=".php">app/Providers</directory>
         </exclude>
     </source>
-    <coverage>
-        <report>
-            <html outputDirectory="coverage/html"/>
-            <clover outputFile="coverage/clover.xml"/>
-        </report>
-    </coverage>
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
