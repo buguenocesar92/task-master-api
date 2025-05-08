@@ -40,7 +40,11 @@ Route::prefix('auth')->group(function () {
  *
  *         @OA\JsonContent(
  *
- *             @OA\Property(property="message", type="string", example="Log de prueba realizado. Revisa storage/logs/laravel.log")
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Log de prueba realizado. Revisa storage/logs/laravel.log"
+ *             )
  *         )
  *     )
  * )

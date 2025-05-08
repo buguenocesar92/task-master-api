@@ -67,10 +67,33 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             required={"name", "email", "password", "password_confirmation"},
      *
-     *             @OA\Property(property="name", type="string", example="Juan Pérez", description="Nombre del usuario"),
-     *             @OA\Property(property="email", type="string", format="email", example="juan@example.com", description="Correo electrónico"),
-     *             @OA\Property(property="password", type="string", format="password", example="Secret123", description="Contraseña (mínimo 8 caracteres)"),
-     *             @OA\Property(property="password_confirmation", type="string", format="password", example="Secret123", description="Confirmación de contraseña")
+     *             @OA\Property(
+     *                 property="name",
+     *                 type="string",
+     *                 example="Juan Pérez",
+     *                 description="Nombre del usuario"
+     *             ),
+     *             @OA\Property(
+     *                 property="email",
+     *                 type="string",
+     *                 format="email",
+     *                 example="juan@example.com",
+     *                 description="Correo electrónico"
+     *             ),
+     *             @OA\Property(
+     *                 property="password",
+     *                 type="string",
+     *                 format="password",
+     *                 example="Secret123",
+     *                 description="Contraseña (mínimo 8 caracteres)"
+     *             ),
+     *             @OA\Property(
+     *                 property="password_confirmation",
+     *                 type="string",
+     *                 format="password",
+     *                 example="Secret123",
+     *                 description="Confirmación de contraseña"
+     *             )
      *         )
      *     ),
      *
@@ -89,8 +112,23 @@ class AuthController extends Controller
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="name", type="string", example="Juan Pérez"),
      *                 @OA\Property(property="email", type="string", example="juan@example.com"),
-     *                 @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
-     *                 @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *                 @OA\Property(property="roles", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="user"
+     *                     )
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="permissions",
+     *                     type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="task:create"
+     *                     )
+     *                 )
      *             )
      *         )
      *     ),
@@ -105,7 +143,13 @@ class AuthController extends Controller
      *             @OA\Property(
      *                 property="errors",
      *                 type="object",
-     *                 @OA\Property(property="email", type="array", @OA\Items(type="string", example="El correo ya está en uso."))
+     *                 @OA\Property(property="email", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="El correo ya está en uso."
+     *                     )
+     *                 )
      *             )
      *         )
      *     ),
@@ -116,7 +160,11 @@ class AuthController extends Controller
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="error", type="string", example="Ocurrió un error durante el registro")
+     *             @OA\Property(
+     *                 property="error",
+     *                 type="string",
+     *                 example="Ocurrió un error durante el registro"
+     *             )
      *         )
      *     )
      * )
@@ -211,8 +259,21 @@ class AuthController extends Controller
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="name", type="string", example="Juan Pérez"),
      *                 @OA\Property(property="email", type="string", example="juan@example.com"),
-     *                 @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
-     *                 @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *                 @OA\Property(property="roles", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="user"
+     *                     )
+     *                 ),
+     *
+     *                 @OA\Property(property="permissions", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="task:create"
+     *                     )
+     *                 )
      *             )
      *         )
      *     ),
@@ -237,7 +298,13 @@ class AuthController extends Controller
      *             @OA\Property(
      *                 property="errors",
      *                 type="object",
-     *                 @OA\Property(property="email", type="array", @OA\Items(type="string", example="El campo email es requerido."))
+     *                 @OA\Property(property="email", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="El campo email es requerido."
+     *                     )
+     *                 )
      *             )
      *         )
      *     )
@@ -273,8 +340,21 @@ class AuthController extends Controller
      *             @OA\Property(property="id", type="integer", example=1),
      *             @OA\Property(property="name", type="string", example="Juan Pérez"),
      *             @OA\Property(property="email", type="string", example="juan@example.com"),
-     *             @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
-     *             @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *             @OA\Property(property="roles", type="array",
+     *
+     *                 @OA\Items(
+     *                     type="string",
+     *                     example="user"
+     *                 )
+     *             ),
+     *
+     *             @OA\Property(property="permissions", type="array",
+     *
+     *                 @OA\Items(
+     *                     type="string",
+     *                     example="task:create"
+     *                 )
+     *             )
      *         )
      *     ),
      *
@@ -284,7 +364,11 @@ class AuthController extends Controller
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="Unauthenticated"
+     *             )
      *         )
      *     )
      * )
@@ -343,7 +427,8 @@ class AuthController extends Controller
      * @OA\Post(
      *     path="/auth/refresh",
      *     summary="Refresca el token JWT obteniendo uno nuevo",
-     *     description="Utiliza un token de refresco (refresh_token) para obtener un nuevo token de acceso sin necesidad de credenciales",
+     *     description="Utiliza un token de refresco (refresh_token) para obtener un nuevo token de acceso
+     *                sin necesidad de credenciales",
      *     tags={"Autenticación"},
      *     security={{"bearerAuth":{}}},
      *
@@ -374,8 +459,21 @@ class AuthController extends Controller
      *                 @OA\Property(property="id", type="integer", example=1),
      *                 @OA\Property(property="name", type="string", example="Juan Pérez"),
      *                 @OA\Property(property="email", type="string", example="juan@example.com"),
-     *                 @OA\Property(property="roles", type="array", @OA\Items(type="string", example="user")),
-     *                 @OA\Property(property="permissions", type="array", @OA\Items(type="string", example="task:create"))
+     *                 @OA\Property(property="roles", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="user"
+     *                     )
+     *                 ),
+     *
+     *                 @OA\Property(property="permissions", type="array",
+     *
+     *                     @OA\Items(
+     *                         type="string",
+     *                         example="task:create"
+     *                     )
+     *                 )
      *             )
      *         )
      *     ),
@@ -386,7 +484,11 @@ class AuthController extends Controller
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="error", type="string", example="Invalid refresh token")
+     *             @OA\Property(
+     *                 property="error",
+     *                 type="string",
+     *                 example="Invalid refresh token"
+     *             )
      *         )
      *     )
      * )
