@@ -88,13 +88,23 @@ class AuthService implements AuthServiceInterface
         ];
 
         try {
-            // Generar un token de refresco con TTL corto para pruebas (5 minutos)
-            // En producción usar: ->setTTL(60 * 24 * 7) para 7 días
+            // CAMBIO IMPORTANTE: Generar un token completamente nuevo en lugar de refrescar el actual
+            // lo cual evita que el token principal se añada a la blacklist
             /** @var JWTGuard $guard */
             $guard = Auth::guard('api');
-            $refreshToken = $guard->claims($claims)->setTTL(5)->refresh();
 
-            $this->logger->log('Token de refresco generado', [
+            // Obtener el usuario actual
+            $user = $guard->user();
+
+            if (!$user) {
+                $this->logger->log('No se pudo obtener el usuario para generar refresh token', [], 'error');
+                return false;
+            }
+
+            // Generar un token completamente nuevo con TTL corto (5 minutos)
+            $refreshToken = $guard->claims($claims)->setTTL(5)->fromUser($user);
+
+            $this->logger->log('Token de refresco generado sin invalidar el token principal', [
                 'user_id' => Auth::id(),
                 'exp' => time() + (5 * 60), // Tiempo de expiración (5 minutos)
             ], 'debug');
