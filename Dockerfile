@@ -71,8 +71,13 @@ RUN php artisan config:cache \
 # Change ownership of all files to www-data
 RUN chown -R www-data:www-data /var/www/html
 
+# Crear script de entrada
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+RUN chmod +x /usr/local/bin/docker-entrypoint
+
 # Expose port 9000
 EXPOSE 9000
 
-# Run php-fpm
+# Usar script de entrada en lugar de ejecutar directamente php-fpm
+ENTRYPOINT ["docker-entrypoint"]
 CMD ["php-fpm"]
